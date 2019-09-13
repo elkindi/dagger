@@ -13,7 +13,7 @@ class DbInterface(object):
     pandas_classes = [pd.DataFrame, pd.Series]
     numpy_classes = [np.ndarray]
 
-    def __init__(self, filename='database.ini', section='postgresql'):
+    def __init__(self, filename='../database.ini', section='postgresql'):
         super(DbInterface, self).__init__()
         self.db_config = config(filename, section)
         self.db_engine = create_engine(engine_config())
