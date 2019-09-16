@@ -41,6 +41,8 @@ class Logger(ast.NodeTransformer):
                 args.append(ast.Str(s=node.id))
             elif arg == 'lineno':
                 args.append(ast.Num(node.lineno))
+            elif arg == 'db':
+                args.append(ast.Name(id='db', ctx=ast.Load()))
         return args
 
     def visit_ClassDef(self, node):
