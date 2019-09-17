@@ -33,91 +33,105 @@ def prepare_scalar_tables():
                 name text NOT NULL,
                 value boolean NOT NULL
             );
-        """
-    return sql
-
-
-# for 1d arrays (lists, tuples) of scalar values, 1 for each type and 1 for combined arrays
-def prepare_scalar_1d_array_tables():
-    sql = """
-            CREATE TABLE IF NOT EXISTS int_scalar_1d_array (
+            CREATE TABLE IF NOT EXISTS date_scalar (
                 id serial PRIMARY KEY,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
                 name text NOT NULL,
-                value integer[] NOT NULL
+                value date NOT NULL
             );
-            CREATE TABLE IF NOT EXISTS float_scalar_1d_array (
+            CREATE TABLE IF NOT EXISTS time_scalar (
                 id serial PRIMARY KEY,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
                 name text NOT NULL,
-                value double precision[] NOT NULL
+                value time NOT NULL
             );
-            CREATE TABLE IF NOT EXISTS str_scalar_1d_array (
+            CREATE TABLE IF NOT EXISTS datetime_scalar (
                 id serial PRIMARY KEY,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
                 name text NOT NULL,
-                value text[] NOT NULL
-            );
-            CREATE TABLE IF NOT EXISTS bool_scalar_1d_array (
-                id serial PRIMARY KEY,
-                t timestamptz NOT NULL DEFAULT current_timestamp,
-                lineno integer NOT NULL,
-                name text NOT NULL,
-                value boolean[] NOT NULL
-            );
-            CREATE TABLE IF NOT EXISTS combined_scalar_1d_array (
-                id serial PRIMARY KEY,
-                t timestamptz NOT NULL DEFAULT current_timestamp,
-                lineno integer NOT NULL,
-                name text NOT NULL,
-                types text[] NOT NULL,
-                value text[] NOT NULL
+                value timestamp NOT NULL
             );
         """
     return sql
 
 
-# for 2d arrays (lists, tuples) of scalar values, 1 for each type and 1 for combined arrays
-def prepare_scalar_1d_array_tables():
+# for arrays (lists, tuples) of scalar values, 1 for each type and 1 for compound arrays
+def prepare_scalar_array_tables():
     sql = """
-            CREATE TABLE IF NOT EXISTS int_scalar_2d_array (
+            CREATE TABLE IF NOT EXISTS empty_array (
                 id serial PRIMARY KEY,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
-                name text NOT NULL,
-                value integer[][] NOT NULL
+                arr_type text NOT NULL,
+                name text NOT NULL
             );
-            CREATE TABLE IF NOT EXISTS float_scalar_2d_array (
+            CREATE TABLE IF NOT EXISTS int_scalar_array (
                 id serial PRIMARY KEY,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
+                arr_type text NOT NULL,
                 name text NOT NULL,
-                value double precision[][] NOT NULL
+                value integer array NOT NULL
             );
-            CREATE TABLE IF NOT EXISTS str_scalar_2d_array (
+            CREATE TABLE IF NOT EXISTS float_scalar_array (
                 id serial PRIMARY KEY,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
+                arr_type text NOT NULL,
                 name text NOT NULL,
-                value text[][] NOT NULL
+                value double precision array NOT NULL
             );
-            CREATE TABLE IF NOT EXISTS bool_scalar_2d_array (
+            CREATE TABLE IF NOT EXISTS str_scalar_array (
                 id serial PRIMARY KEY,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
+                arr_type text NOT NULL,
                 name text NOT NULL,
-                value boolean[][] NOT NULL
+                value text array NOT NULL
             );
-            CREATE TABLE IF NOT EXISTS combined_scalar_2d_array (
+            CREATE TABLE IF NOT EXISTS bool_scalar_array (
                 id serial PRIMARY KEY,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
+                arr_type text NOT NULL,
                 name text NOT NULL,
-                types text[][] NOT NULL,
-                value text[][] NOT NULL
+                value boolean array NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS date_scalar_array (
+                id serial PRIMARY KEY,
+                t timestamptz NOT NULL DEFAULT current_timestamp,
+                lineno integer NOT NULL,
+                arr_type text NOT NULL,
+                name text NOT NULL,
+                value date array NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS time_scalar_array (
+                id serial PRIMARY KEY,
+                t timestamptz NOT NULL DEFAULT current_timestamp,
+                lineno integer NOT NULL,
+                arr_type text NOT NULL,
+                name text NOT NULL,
+                value time array NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS datetime_scalar_array (
+                id serial PRIMARY KEY,
+                t timestamptz NOT NULL DEFAULT current_timestamp,
+                lineno integer NOT NULL,
+                arr_type text NOT NULL,
+                name text NOT NULL,
+                value timestamp array NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS compound_scalar_array (
+                id serial PRIMARY KEY,
+                t timestamptz NOT NULL DEFAULT current_timestamp,
+                lineno integer NOT NULL,
+                arr_type text NOT NULL,
+                name text NOT NULL,
+                types text array NOT NULL,
+                value text array NOT NULL
             );
         """
     return sql
@@ -176,6 +190,7 @@ def prepare_numpy_tables():
 def get_create_statements():
     sql_stmts = []
     sql_stmts.append(prepare_scalar_tables())
+    sql_stmts.append(prepare_scalar_array_tables())
     sql_stmts.append(prepare_pandas_tables())
     sql_stmts.append(prepare_numpy_tables())
     return sql_stmts

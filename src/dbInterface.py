@@ -1,8 +1,9 @@
 import numpy as np
 import pandas as pd
-import datetime as dt
 from dbObject import DbObject
+from datetime import date, time, datetime
 from dbConnection import connect, disconnect, get_engine
+from array_utils import ArrayType, get_array_type, get_element_types
 
 
 class DbResource(object):
@@ -18,9 +19,9 @@ class DbResource(object):
 
 class DbInterface(object):
     """docstring for DbInterface"""
-    scalar_classes = [int, float, str, bool]  # complex?
-    array_like_classes = [list, tuple, set, frozenset, dict]
-    date_like_classes = [dt.datetime, dt.date]
+    scalar_classes = [int, float, str, bool, date, time, datetime]  # complex?
+    array_like_classes = [list, tuple, set, frozenset]
+    dict_class = [dict]
     pandas_classes = [pd.DataFrame, pd.Series]
     numpy_classes = [np.ndarray]
 
@@ -38,7 +39,7 @@ class DbInterface(object):
         self.engine = get_engine()
 
     def disconnect(self, commit=True):
-        disconnect(self.cur, self.conn)
+        disconnect(self.cur, self.conn, commit=commit)
         self.cur = None
         self.conn = None
         self.engine = None
@@ -50,10 +51,10 @@ class DbInterface(object):
     def save(self, obj: DbObject):
         if obj.type in self.scalar_classes:
             self.save_scalar(obj)
-        # elif obj.type in self.array_like_classes:
-        #     self.save_array_like(obj)
-        # elif obj.type in self.date_like_classes:
-        #     self.save_date_like(obj)
+        elif obj.type in self.array_like_classes:
+            self.save_array_like(obj)
+        # elif obj.type in self.dict_class:
+        #     self.save_dict(obj)
         elif obj.type in self.pandas_classes:
             self.save_pandas(obj)
         elif obj.type in self.numpy_classes:
@@ -66,6 +67,26 @@ class DbInterface(object):
             obj.type.__name__)
         args = (obj.time, obj.lineno, obj.name, obj.value)
         self.cur.execute(sql, args)
+
+    def save_array_like(self, obj: DbObject):
+        try:
+            arr_type = get_array_type(obj.value)
+        except Exception as e:
+            raise e
+        else:
+            sql, args = None, (obj.time, obj.lineno, type(obj.value).__name__,
+                               obj.name)
+            arr = list(obj.value)
+            if arr_type is ArrayType.EMPTY:
+                sql = "INSERT INTO empty_array(t, lineno, arr_type, name) VALUES (%s,%s,%s,%s)"
+            elif arr_type is ArrayType.COMPOUND:
+                sql = "INSERT INTO compound_scalar_array(t, lineno, arr_type, name, types, value) VALUES (%s,%s,%s,%s,%s,%s)"
+                args += (get_element_types(arr), list(map(str, arr)))
+            else:
+                sql = "INSERT INTO {}_scalar_array(t, lineno, arr_type, name, value) VALUES (%s,%s,%s,%s,%s)".format(
+                    type(arr[0]).__name__)
+                args += (arr, )
+            self.cur.execute(sql, args)
 
     def save_pandas(self, obj: DbObject):
         sql = "INSERT INTO {}_object(t, lineno, name) VALUES (%s,%s,%s) RETURNING value".format(

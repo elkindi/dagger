@@ -15,7 +15,7 @@ class Logger(ast.NodeTransformer):
         elif isinstance(log_function, str):
             self.log_function = log_function
         self.log_function_args = log_function_args
-        self.modifier_functions = set('')
+        self.modifier_functions = set(['append'])
         self.blockList = BlockList()
 
     def add_blocks(self, blocks):
@@ -35,7 +35,7 @@ class Logger(ast.NodeTransformer):
             raise ValueError("Node must be of type ast.Name")
         args = []
         for arg in self.log_function_args:
-            if arg == 'var':
+            if arg == 'val':
                 args.append(ast.Name(id=node.id, ctx=ast.Load()))
             elif arg == 'name':
                 args.append(ast.Str(s=node.id))

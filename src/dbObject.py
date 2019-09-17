@@ -12,6 +12,13 @@ class DbObject(object):
         self.name = name
         self.value = value
 
+    def __repr__(self):
+        return "DbObject(name: {}, type: {}, lineno: {})".format(
+            self.name, self.type.__name__, self.lineno)
+
+    def __str__(self):
+        return repr(self)
+
     @property
     def __class__(self):
         return self.type
