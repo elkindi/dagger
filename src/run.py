@@ -11,7 +11,12 @@ log = []
 ltz = datetime.utcnow().astimezone().tzinfo
 
 
-def save(value: object, name: str, lineno: int, db: DbInterface):
+def log_variable(value: object,
+                 name: str = None,
+                 lineno: int = None,
+                 db: DbInterface = None):
+    if name is None:
+        return
     obj = DbObject(type(value), datetime.now(ltz), lineno, name, value)
     try:
         db.save(obj)
@@ -26,7 +31,7 @@ def main(name, blocks=[], modifier_attr_fcts=[]):
     source = open(name, 'r').read()
     tree = ast.parse(source)
 
-    logger = Logger(save, 'val', 'name', 'lineno', 'db')
+    logger = Logger(log_variable, 'val', 'name', 'lineno', 'db')
     logger.add_blocks(blocks)
     logger.add_modifier_attr_fcts(modifier_attr_fcts)
 
@@ -41,9 +46,12 @@ def main(name, blocks=[], modifier_attr_fcts=[]):
     new_tree = logger.visit(tree)
     code = compile(new_tree, name, 'exec')
 
-    print("Execution:")
+    # print("New Tree:")
+    # astpretty.pprint(new_tree)
+
     with DbResource() as db:
-        exec(code, {'save': save, 'db': db})
+        print("Execution:")
+        exec(code, {'log': log, 'log_variable': log_variable, 'db': db})
 
     print("Log:")
     for log_item in log:
@@ -75,20 +83,18 @@ if __name__ == '__main__':
     parser.add_argument('filename', help='python file to run')
     parser.add_argument('-b',
                         '--blocks',
-                        dest='blocks',
+                        dest='b',
                         default=[],
                         type=block_list,
                         nargs='*',
-                        help='Pipeline blocks')
+                        help='Pipeline blocks written as (start,end)')
     parser.add_argument('-maf',
                         '--modifier_attr_fcts',
                         default=[],
-                        dest='modifier_attr_fcts',
+                        dest='maf',
                         type=str,
                         nargs='*',
-                        help='Modifier attribute functions')
+                        help='Modifier attribute functions (ex: append)')
     args = parser.parse_args()
     print(args)
-    main(args.filename,
-         blocks=args.blocks,
-         modifier_attr_fcts=args.modifier_attr_fcts)
+    main(args.filename, blocks=args.b, modifier_attr_fcts=args.maf)

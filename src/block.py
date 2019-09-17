@@ -9,13 +9,14 @@ class Block:
         try:
             start = int(start)
             end = int(end)
+        except Exception as e:
+            raise e
+        else:
             if start < end:
                 self.start = start
                 self.end = end
             else:
                 raise ValueError("Start value must be smaller than end value")
-        except Exception as e:
-            raise e
 
     def __iter__(self):
         self.i = self.start

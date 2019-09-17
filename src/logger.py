@@ -52,7 +52,10 @@ class Logger(ast.NodeTransformer):
         return node
 
     def visit_Expr(self, node):
-        if node.lineno in self.blockList:
+        (is_log_expr, modified_node) = self.is_log_expr(node)
+        if is_log_expr:
+            return modified_node
+        elif node.lineno in self.blockList:
             log_nodes = self.log_expr(node)
             return [node, *log_nodes]
         else:
@@ -65,7 +68,17 @@ class Logger(ast.NodeTransformer):
         else:
             return node
 
-    def log_name(self, node) -> List:
+    def is_log_expr(self, node):
+        if isinstance(node.value, ast.Call) and \
+                isinstance(node.value.func, ast.Name) and \
+                node.value.func.id == self.log_function and \
+                len(node.value.args) > 0 and \
+                isinstance(node.value.args[0], ast.Name):
+            return (True, *self.log_name(node.value.args[0]))
+        else:
+            return (False, None)
+
+    def log_name(self, node) -> NodeList:
         log_node = ast.Expr(
             value=ast.Call(func=ast.Name(id=self.log_function, ctx=ast.Load()),
                            args=self.get_log_function_args(node),
@@ -101,17 +114,21 @@ class Logger(ast.NodeTransformer):
         else:
             return []
 
-    def log_call_func(self, node) -> NodeList:
-        if isinstance(
-                node, ast.Attribute
-        ) and node.attr in self.modifier_functions and isinstance(
-                node.value, ast.Name):
-            return self.log_name(node.value)
+    def log_expr(self, node) -> NodeList:
+        if isinstance(node.value, ast.Call):
+            return self.log_call(node.value)
         else:
             return []
 
-    def log_expr(self, node) -> NodeList:
-        if isinstance(node.value, ast.Call):
-            return self.log_call_func(node.value.func)
+    def log_call(self, node) -> NodeList:
+        if isinstance(node.func, ast.Attribute):
+            return self.log_call_attribute(node.func)
+        else:
+            return []
+
+    def log_call_attribute(self, node) -> NodeList:
+        if node.attr in self.modifier_functions and isinstance(
+                node.value, ast.Name):
+            return self.log_name(node.value)
         else:
             return []
