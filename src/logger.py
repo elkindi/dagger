@@ -110,7 +110,7 @@ class Logger(ast.NodeTransformer):
 
     def log_assign_value(self, node) -> NodeList:
         if isinstance(node, ast.Call):
-            return self.log_call_func(node.func)
+            return self.log_call(node)
         else:
             return []
 
