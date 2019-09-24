@@ -3,6 +3,12 @@ from datetime import date, time, datetime
 
 
 class ArrayType(Enum):
+    """
+    ArrayType enum
+
+    Used to classify the arrays from the types of their elements
+    """
+
     EMPTY = auto()
     INT = auto()
     FLOAT = auto()
@@ -13,6 +19,9 @@ class ArrayType(Enum):
     DATETIME = auto()
     COMPOUND = auto()
 
+    # Return an ArrayType from a python type
+    # If the given element is not a type object,
+    # get its type first
     @classmethod
     def from_type(cls, _type):
         if not isinstance(_type, type):
@@ -37,8 +46,19 @@ class ArrayType(Enum):
             return cls.DATETIME
 
 
+# Get the type of an array-like object (list, tuple, set, frozenset)
+#
+# If all elements have the same python type (one of the base types),
+# return the correspinding ArrayType
+#
+# If the list is empty, return ArrayType.EMPTY
+#
+# If the array contains elements of multuple base types,
+# return ArrayType.COMPOUND
+#
+# If the array contains elements of a different type, raise a ValueError
+#
 def get_array_type(arr):
-
     if type(arr) not in [list, tuple, set, frozenset]:
         raise ValueError(
             "Argument must be one of the following types: list, tuple, set, frozenset"
@@ -62,7 +82,8 @@ def get_array_type(arr):
     return arr_type
 
 
-# get types of elements in compound array pased as tuple
+# get types of elements in compound array passed as tuple or list
+# ('in' operator doesn't work on set and frozenset)
 def get_element_types(arr):
     types = []
     for elem in arr:

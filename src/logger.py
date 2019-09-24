@@ -7,7 +7,12 @@ NodeList = List[ast.AST]
 
 
 class Logger(ast.NodeTransformer):
-    """docstring for Logger"""
+    """
+    Logger class
+
+    Implements visit functions of the NodeTransformer 
+    to add logging functions at the needed places
+    """
     def __init__(self, log_function, *log_function_args):
         super(Logger, self).__init__()
         if callable(log_function):
@@ -30,6 +35,8 @@ class Logger(ast.NodeTransformer):
     def get_modifier_attr_fcts(self):
         return self.modifier_functions.copy()
 
+    # This is kinda hardcoded, but just change this
+    # depending on the arguments of the logging function used
     def get_log_function_args(self, node):
         if not isinstance(node, ast.Name):
             raise ValueError("Node must be of type ast.Name")
@@ -45,12 +52,25 @@ class Logger(ast.NodeTransformer):
                 args.append(ast.Name(id='db', ctx=ast.Load()))
         return args
 
+    # We don't want handle user-defined classes yet,
+    # so no generic_visit call (do not visit its children)
     def visit_ClassDef(self, node):
         return node
 
-    def visit_For(self, node):
-        return node
+    # # We don't want handle for-loops yet,
+    # # so no generic_visit call (do not visit its children)
+    # def visit_For(self, node):
+    #     return node
 
+    # # We don't want handle for-loops yet,
+    # # so no generic_visit call (do not visit its children)
+    # def visit_While(self, node):
+    #     return node
+
+    # If the node is an expression,
+    # test if it is a call to the logging function
+    # If Yes, add the needed attributes to the call
+    # If No, check if it is a call to one of the mafs
     def visit_Expr(self, node):
         (is_log_expr, modified_node) = self.is_log_expr(node)
         if is_log_expr:
@@ -61,6 +81,7 @@ class Logger(ast.NodeTransformer):
         else:
             return node
 
+    # Log the assigned variable
     def visit_Assign(self, node):
         if node.lineno in self.blockList:
             log_nodes = self.log_assign(node)
@@ -68,6 +89,8 @@ class Logger(ast.NodeTransformer):
         else:
             return node
 
+    # Checks if the expression is a call to the logging function
+    # and returns a new node with all the needed arguments if so
     def is_log_expr(self, node):
         if isinstance(node.value, ast.Call) and \
                 isinstance(node.value.func, ast.Name) and \
@@ -78,6 +101,7 @@ class Logger(ast.NodeTransformer):
         else:
             return (False, None)
 
+    # Creates a node logging the variable defined by the name node
     def log_name(self, node) -> NodeList:
         log_node = ast.Expr(
             value=ast.Call(func=ast.Name(id=self.log_function, ctx=ast.Load()),
@@ -87,6 +111,8 @@ class Logger(ast.NodeTransformer):
         ast.fix_missing_locations(log_node)
         return [log_node]
 
+    # Log the assignement targets
+    # and checks if the assignemnt value has a call to a maf
     def log_assign(self, node) -> NodeList:
         log_nodes = []
         for target in node.targets:
@@ -94,6 +120,7 @@ class Logger(ast.NodeTransformer):
         log_nodes.extend(self.log_assign_value(node.value))
         return log_nodes
 
+    # Logs the assignement target
     def log_assign_target(self, node) -> NodeList:
         if isinstance(node, ast.Name):
             return self.log_name(node)
@@ -108,24 +135,28 @@ class Logger(ast.NodeTransformer):
         else:
             return []
 
+    # Logs the assignement value if it is a call to a maf
     def log_assign_value(self, node) -> NodeList:
         if isinstance(node, ast.Call):
             return self.log_call(node)
         else:
             return []
 
+    # Logs the variable in the expression if it is a call to a maf
     def log_expr(self, node) -> NodeList:
         if isinstance(node.value, ast.Call):
             return self.log_call(node.value)
         else:
             return []
 
+    # Logs the variable in the call if it is a call to a maf
     def log_call(self, node) -> NodeList:
         if isinstance(node.func, ast.Attribute):
             return self.log_call_attribute(node.func)
         else:
             return []
 
+    # Logs the variable in the attribute call if it is a call to a maf
     def log_call_attribute(self, node) -> NodeList:
         if node.attr in self.modifier_functions and isinstance(
                 node.value, ast.Name):

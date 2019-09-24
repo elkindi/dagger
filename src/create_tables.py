@@ -3,6 +3,8 @@ from dbConnection import connect, disconnect
 
 
 # for scalar values ex: 4, 'a', True, 12.90
+# and for date, time and datetime types
+# (they are handled as scalar values)
 def prepare_scalar_tables():
     sql = """
             CREATE TABLE IF NOT EXISTS int_scalar (
@@ -58,7 +60,8 @@ def prepare_scalar_tables():
     return sql
 
 
-# for arrays (lists, tuples) of scalar values, 1 for each type and 1 for compound arrays
+# for arrays (lists, tuples, sets and frozensets) of scalar values,
+# 1 for each type and 1 for compound arrays
 def prepare_scalar_array_tables():
     sql = """
             CREATE TABLE IF NOT EXISTS empty_array (
@@ -137,6 +140,7 @@ def prepare_scalar_array_tables():
     return sql
 
 
+# Pandas dataframes and series
 def prepare_pandas_tables():
     sql = """
             CREATE TABLE IF NOT EXISTS dataframe_object (
@@ -157,6 +161,7 @@ def prepare_pandas_tables():
     return sql
 
 
+# Numpy arrays for 0d, 1d and 2d arrays
 def prepare_numpy_tables():
     sql = """
             CREATE TABLE IF NOT EXISTS np_0d_object (
@@ -187,15 +192,38 @@ def prepare_numpy_tables():
     return sql
 
 
+# Tables used for testing
+def prepare_test_tables():
+    sql = """
+            CREATE TABLE IF NOT EXISTS test_dataframe_object (
+                id serial PRIMARY KEY,
+                t timestamptz NOT NULL DEFAULT current_timestamp,
+                lineno integer NOT NULL,
+                name text NOT NULL,
+                rlist integer array NOT NULL,
+                clist text array NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS test_dataframe_table (
+                rid serial PRIMARY KEY,
+                index integer NOT NULL
+            );
+        """
+    return sql
+
+
+# List of all needed statements to fully create the database
 def get_create_statements():
     sql_stmts = []
     sql_stmts.append(prepare_scalar_tables())
     sql_stmts.append(prepare_scalar_array_tables())
     sql_stmts.append(prepare_pandas_tables())
     sql_stmts.append(prepare_numpy_tables())
+    sql_stmts.append(prepare_test_tables())
     return sql_stmts
 
 
+# Drop all tables in the database
+# used to reset the database
 def get_drop_statement():
     return """
             DROP SCHEMA public CASCADE;
@@ -203,6 +231,7 @@ def get_drop_statement():
         """
 
 
+# Create the database tables
 def create_tables():
     try:
         (cur, conn) = connect()
@@ -215,6 +244,7 @@ def create_tables():
         disconnect(cur, conn)
 
 
+# Drop the database tables
 def drop_tables():
     try:
         (cur, conn) = connect()
@@ -226,6 +256,8 @@ def drop_tables():
         disconnect(cur, conn)
 
 
+# Reset the database
+# First drop, then recreate all the tables
 def reset_tables():
     try:
         (cur, conn) = connect()
@@ -240,13 +272,36 @@ def reset_tables():
 
 
 def main(arg):
-    if arg == 'create':
+    if arg == 'create' or arg == '-c':
+        print("Creating tables")
         create_tables()
-    elif arg == 'reset':
+    elif arg == 'reset' or arg == '-r':
+        print("Resetting tables")
         reset_tables()
-    elif arg == 'drop':
+    elif arg == 'drop' or arg == '-d':
+        print("Dropping tables")
         drop_tables()
+    else:
+        print("The given argument was incorrect\n" + "Options are:\n" +
+              " - 'create' or '-c' to create the tables,\n" +
+              " - 'drop' or '-d' to drop all the tables,\n" +
+              " - 'reset' or '-r' to reset the tables")
 
 
 if __name__ == '__main__':
-    main(sys.argv[1])
+    if len(sys.argv) < 2:
+        print(
+            "Please add an argument to specify what to do with the database tables\n"
+            + "Options are:\n" +
+            " - 'create' or '-c' to create the tables,\n" +
+            " - 'drop' or '-d' to drop all the tables,\n" +
+            " - 'reset' or '-r' to reset the tables")
+    elif len(sys.argv) > 2:
+        print(
+            "Please use only one argument to specify what to do with the database tables\n"
+            + "Options are:\n" +
+            " - 'create' or '-c' to create the tables,\n" +
+            " - 'drop' or '-d' to drop all the tables,\n" +
+            " - 'reset' or '-r' to reset the tables")
+    else:
+        main(sys.argv[1])

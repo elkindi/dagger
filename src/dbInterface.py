@@ -1,13 +1,24 @@
 import numpy as np
 import pandas as pd
 from dbObject import DbObject
+from psycopg2.extensions import AsIs
 from datetime import date, time, datetime
+from psycopg2.extras import execute_values
 from dbConnection import connect, disconnect, get_engine
 from array_utils import ArrayType, get_array_type, get_element_types
 
 
 class DbResource(object):
-    """docstring for DbResource"""
+    """
+    DbResource class
+
+    Allows to write:
+    with DbResource() as db:
+       db.save(...)
+
+    The returned db object is an instance of DbInterface
+    The connection and disconnection is handled automatically
+    """
     def __enter__(self):
         self.db_interface_obj = DbInterface()
         self.db_interface_obj.connect()
@@ -18,36 +29,78 @@ class DbResource(object):
 
 
 class DbInterface(object):
-    """docstring for DbInterface"""
+    """
+    DbInterface class
+
+    Interface to connect to the database and save DbObject instances
+    Multiple python, numpy and pandas types are handled
+
+    Connection and diconnection is manual
+    For automatic connect and diconnect, use the DbResource class
+    """
     scalar_classes = [int, float, str, bool, date, time, datetime]  # complex?
     array_like_classes = [list, tuple, set, frozenset]
-    dict_class = [dict]
+    dict_class = [dict]  # Not handled yet
     pandas_classes = [pd.DataFrame, pd.Series]
     numpy_classes = [np.ndarray]
+
+    # Used to convert a pandas column type into a postgres type
+    # All other types are not handled specifically
+    # and are converted to postgres text type
+    conversion_table = {
+        int: 'integer',
+        float: 'double precision',
+        str: 'text',
+        bool: 'bool',
+        date: 'date',
+        time: 'time',
+        datetime: 'timestamp',
+        np.object: 'text',
+        np.int8: 'smallint',
+        np.int16: 'smallint',
+        np.int32: 'integer',
+        np.int64: 'bigint',
+        np.uint8: 'smallint',
+        np.uint16: 'integer',
+        np.uint32: 'bigint',
+        np.float32: 'real',
+        np.float64: 'double precision',
+        np.datetime64: 'timestamp',
+        np.timedelta64: 'interval',
+    }
 
     def __init__(self):
         super(DbInterface, self).__init__()
         self.cur = None
         self.conn = None
 
+    # Disconnect without committing if the instance is deleted
     def __del__(self):
         if self.conn is not None:
             self.disconnect(False)
 
+    # Connect to the database
+    # raises an exception if the connection fails
     def connect(self):
         self.cur, self.conn = connect()
         self.engine = get_engine()
 
+    # Diconnect to the database and commit the changes
     def disconnect(self, commit=True):
         disconnect(self.cur, self.conn, commit=commit)
         self.cur = None
         self.conn = None
         self.engine = None
 
+    # Commit the changes (Could be called after each save call if needed)
     def commit(self):
         if self.conn is not None:
             self.conn.commit()
 
+    # Save a DbObject in the database
+    # If the type of the object is handled,
+    # call the corresponding function
+    # Otherwise, raise a TypeError
     def save(self, obj: DbObject):
         if obj.type in self.scalar_classes:
             self.save_scalar(obj)

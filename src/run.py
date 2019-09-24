@@ -11,6 +11,7 @@ log = []
 ltz = datetime.utcnow().astimezone().tzinfo
 
 
+# Saves the variable in the database and adds an entry in the log
 def log_variable(value: object,
                  name: str = None,
                  lineno: int = None,
@@ -26,11 +27,15 @@ def log_variable(value: object,
         log.append((obj, True))
 
 
+# Runs a python script file and saves the variables defined in the given blocks
+# The modifier attribute functions are the functions that modify a given variable without an assignment. ex: append, pop
 def main(name, blocks=[], modifier_attr_fcts=[]):
 
+    # Read the script file and parse the code into an ast
     source = open(name, 'r').read()
     tree = ast.parse(source)
 
+    # Create a Logger wih a given log function and specify the blocks and mafs
     logger = Logger(log_variable, 'val', 'name', 'lineno', 'db')
     logger.add_blocks(blocks)
     logger.add_modifier_attr_fcts(modifier_attr_fcts)
@@ -43,16 +48,19 @@ def main(name, blocks=[], modifier_attr_fcts=[]):
     # print("Tree:")
     # astpretty.pprint(tree)
 
+    # Visit the ast of the source code and add the needed logging functions
     new_tree = logger.visit(tree)
     code = compile(new_tree, name, 'exec')
 
     # print("New Tree:")
     # astpretty.pprint(new_tree)
 
+    # Execute the new code
     with DbResource() as db:
         print("Execution:")
         exec(code, {'log': log, 'log_variable': log_variable, 'db': db})
 
+    # Print the log after execution
     print("Log:")
     for log_item in log:
         if log_item[1]:
@@ -61,11 +69,12 @@ def main(name, blocks=[], modifier_attr_fcts=[]):
         else:
             print("{}: Not Saved {}".format(
                 log_item[0].time.strftime('%H:%M:%S'), log_item[0]))
-            print("Message: {}".format(log_item[2]))
+            # print("Message: {}".format(log_item[2]))
 
 
 if __name__ == '__main__':
 
+    # Creates a block from a tuple of line numbers written as: (start,end)
     def block_list(s):
         try:
             block = tuple(map(int, s.strip('()').split(',')))
@@ -80,21 +89,25 @@ if __name__ == '__main__':
                 "Blocks must be defined as '(start,end)', with end > start")
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('filename', help='python file to run')
-    parser.add_argument('-b',
-                        '--blocks',
-                        dest='b',
-                        default=[],
-                        type=block_list,
-                        nargs='*',
-                        help='Pipeline blocks written as (start,end)')
+    parser.add_argument('filename',
+                        help='python file to run')  # Get the filename
+    parser.add_argument(
+        '-b',
+        '--blocks',
+        dest='b',
+        default=[],
+        type=block_list,
+        nargs='*',
+        help='Pipeline blocks written as (start,end)'
+    )  # Get the list of blocks to inspect, if no blocks are given, all lines are checked
     parser.add_argument('-maf',
                         '--modifier_attr_fcts',
                         default=[],
                         dest='maf',
                         type=str,
                         nargs='*',
-                        help='Modifier attribute functions (ex: append)')
+                        help='Modifier attribute functions (ex: append)'
+                        )  # Get the list of modifier attribute functions
     args = parser.parse_args()
     print(args)
     main(args.filename, blocks=args.b, modifier_attr_fcts=args.maf)

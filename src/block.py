@@ -3,7 +3,11 @@ import typing
 
 
 class Block:
-    """docstring for Block"""
+    """
+    Block class
+
+    Specifies essentially a range of integers
+    """
     def __init__(self, start: int, end: int):
         super(Block, self).__init__()
         try:
@@ -37,12 +41,22 @@ class Block:
 
 
 class BlockList:
-    """docstring for BlockList"""
+    """
+    BlockList class
+
+    Specifies essentially a union of integer ranges
+    Implements the 'in' operator to check if an integer 
+    is in either of the contained blocks
+    """
     def __init__(self, *blocks):
         super(BlockList, self).__init__()
         self.set = set()
         self.add_blocks(blocks)
 
+    # Implementation of the 'in' operator
+    # If the list contains no blocks,
+    # return true by default
+    # (this feature can be changed depending on the need)
     def __contains__(self, item):
         if len(self.set) == 0:
             return True
@@ -56,6 +70,9 @@ class BlockList:
         for block in blocks:
             self.set.update(block)
 
+    # Return a list of disjoint blocks,
+    # so the returned blocks are not always
+    # exactly the same as the ones that were added
     def get_blocks(self):
         blocks = []
         for a, b in itertools.groupby(enumerate(self.set),
@@ -67,6 +84,7 @@ class BlockList:
     def __repr__(self):
         return 'BlockList{}'.format(self.get_blocks())
 
+    # Change this if you change the behaviour of the 'in' operator
     def __str__(self):
         if len(self.set) == 0:
             return '[-inf, +inf]'

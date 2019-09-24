@@ -3,6 +3,8 @@ from configparser import ConfigParser
 DATABASE_CONFIG_PATH = '../database.ini'
 
 
+# Get the database config from the config file
+# Returns a dictionary with the configs
 def config(filename=DATABASE_CONFIG_PATH, section='postgresql'):
     parser = ConfigParser()
     parser.read(filename)
@@ -19,6 +21,7 @@ def config(filename=DATABASE_CONFIG_PATH, section='postgresql'):
     return db
 
 
+# Get the configs in the format needed to create an sqlalchemy engine
 def engine_config(filename=DATABASE_CONFIG_PATH, section='postgresql'):
     db = config(filename, section)
     return 'postgresql+psycopg2://{}@{}:{}/{}'.format(db['user'], db['host'],

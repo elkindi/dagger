@@ -2,6 +2,9 @@
 test_pipelines/
 test.py
 
+# folder with papers for research
+papers/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

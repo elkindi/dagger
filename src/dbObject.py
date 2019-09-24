@@ -2,7 +2,11 @@ from datetime import datetime
 
 
 class DbObject(object):
-    """docstring for DbObject"""
+    """
+    DbObject class
+
+    An wrapper class to save all the information of the variables to save to the database
+    """
     def __init__(self, _type: type, _time: datetime, lineno: int, name: str,
                  value):
         super(DbObject, self).__init__()
