@@ -29,7 +29,7 @@ def log_variable(value: object,
 
 # Runs a python script file and saves the variables defined in the given blocks
 # The modifier attribute functions are the functions that modify a given variable without an assignment. ex: append, pop
-def main(name, blocks=[], modifier_attr_fcts=[]):
+def main(name, blocks=[], modifier_attr_fcts=[], delta_logging=True):
 
     # Read the script file and parse the code into an ast
     source = open(name, 'r').read()
@@ -56,7 +56,8 @@ def main(name, blocks=[], modifier_attr_fcts=[]):
     # astpretty.pprint(new_tree)
 
     # Execute the new code
-    with DbResource() as db:
+    db_resource = DbResource(delta_logging)
+    with db_resource as db:
         print("Execution:")
         exec(code, {'log': log, 'log_variable': log_variable, 'db': db})
 
@@ -69,7 +70,7 @@ def main(name, blocks=[], modifier_attr_fcts=[]):
         else:
             print("{}: Not Saved {}".format(
                 log_item[0].time.strftime('%H:%M:%S'), log_item[0]))
-            # print("Message: {}".format(log_item[2]))
+            print("Message: {}".format(log_item[2]))
 
 
 if __name__ == '__main__':
@@ -87,6 +88,17 @@ if __name__ == '__main__':
         except:
             raise argparse.ArgumentTypeError(
                 "Blocks must be defined as '(start,end)', with end > start")
+
+    # Parse input string into a boolean value
+    def str2bool(v):
+        if isinstance(v, bool):
+           return v
+        if v.lower() in ('yes', 'true', 't', 'y', '1'):
+            return True
+        elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+            return False
+        else:
+            raise argparse.ArgumentTypeError('Boolean value expected.')
 
     parser = argparse.ArgumentParser()
     parser.add_argument('filename',
@@ -108,6 +120,14 @@ if __name__ == '__main__':
                         nargs='*',
                         help='Modifier attribute functions (ex: append)'
                         )  # Get the list of modifier attribute functions
+    parser.add_argument('-dl',
+                        '--delta_logging',
+                        const=True,
+                        default=False,
+                        dest='dl',
+                        type=str2bool,
+                        nargs='?',
+                        help='Save dataframes using delta logging or not'
+                        )  # Save values with delta logging or not
     args = parser.parse_args()
-    print(args)
-    main(args.filename, blocks=args.b, modifier_attr_fcts=args.maf)
+    main(args.filename, blocks=args.b, modifier_attr_fcts=args.maf, delta_logging=args.dl)

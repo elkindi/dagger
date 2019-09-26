@@ -4,7 +4,10 @@ from dbObject import DbObject
 from psycopg2.extensions import AsIs
 from datetime import date, time, datetime
 from psycopg2.extras import execute_values
+from dataframe_utils import get_df_cols_rows
+from database_utils import get_db_cols, add_columns
 from dbConnection import connect, disconnect, get_engine
+from psycopg2.extras import execute_values, execute_batch
 from array_utils import ArrayType, get_array_type, get_element_types
 
 
@@ -19,8 +22,10 @@ class DbResource(object):
     The returned db object is an instance of DbInterface
     The connection and disconnection is handled automatically
     """
+    def __init__(self, delta_logging=True):
+        self.db_interface_obj = DbInterface(delta_logging)
+
     def __enter__(self):
-        self.db_interface_obj = DbInterface()
         self.db_interface_obj.connect()
         return self.db_interface_obj
 
@@ -69,8 +74,9 @@ class DbInterface(object):
         np.timedelta64: 'interval',
     }
 
-    def __init__(self):
+    def __init__(self, delta_logging=True):
         super(DbInterface, self).__init__()
+        self.delta_logging = delta_logging
         self.cur = None
         self.conn = None
 
@@ -116,8 +122,9 @@ class DbInterface(object):
             raise TypeError("Obj type is not handled yet")
 
     def save_scalar(self, obj: DbObject):
-        sql = "INSERT INTO {}_scalar(t, lineno, name, value) VALUES (%s,%s,%s,%s)".format(
-            obj.type.__name__)
+        sql = """
+            INSERT INTO {}_scalar(t, lineno, name, value) 
+            VALUES (%s,%s,%s,%s)""".format(obj.type.__name__)
         args = (obj.time, obj.lineno, obj.name, obj.value)
         self.cur.execute(sql, args)
 
@@ -131,18 +138,36 @@ class DbInterface(object):
                                obj.name)
             arr = list(obj.value)
             if arr_type is ArrayType.EMPTY:
-                sql = "INSERT INTO empty_array(t, lineno, arr_type, name) VALUES (%s,%s,%s,%s)"
+                sql = """
+                    INSERT INTO empty_array(t, lineno, arr_type, name) 
+                    VALUES (%s,%s,%s,%s)"""
             elif arr_type is ArrayType.COMPOUND:
-                sql = "INSERT INTO compound_scalar_array(t, lineno, arr_type, name, types, value) VALUES (%s,%s,%s,%s,%s,%s)"
+                sql = """
+                    INSERT INTO compound_scalar_array(t, lineno, arr_type, name, types, value) 
+                    VALUES (%s,%s,%s,%s,%s,%s)"""
                 args += (get_element_types(arr), list(map(str, arr)))
             else:
-                sql = "INSERT INTO {}_scalar_array(t, lineno, arr_type, name, value) VALUES (%s,%s,%s,%s,%s)".format(
-                    type(arr[0]).__name__)
+                sql = """
+                    INSERT INTO {}_scalar_array(t, lineno, arr_type, name, value) 
+                    VALUES (%s,%s,%s,%s,%s)""".format(type(arr[0]).__name__)
                 args += (arr, )
             self.cur.execute(sql, args)
 
     def save_pandas(self, obj: DbObject):
-        sql = "INSERT INTO {}_object(t, lineno, name) VALUES (%s,%s,%s) RETURNING value".format(
+        if obj.type is pd.Series:
+            self.save_pandas_default(obj)
+        elif obj.type is pd.DataFrame:
+            if self.delta_logging:
+                self.save_dataframe_delta(obj)
+            else:
+                self.save_pandas_default(obj)
+        else:
+            raise TypeError("This should not happen")
+
+    def save_pandas_default(self, obj: DbObject):
+        sql = """
+            INSERT INTO {}_object(t, lineno, name) 
+            VALUES (%s,%s,%s) RETURNING value""".format(
             obj.type.__name__.lower())
         args = (obj.time, obj.lineno, obj.name)
         self.cur.execute(sql, args)
@@ -150,11 +175,113 @@ class DbInterface(object):
         table_name = "{}_{}".format(obj.type.__name__.lower(), table_id)
         obj.value.to_sql(table_name, self.engine)
 
+    def save_dataframe_delta(self, obj: DbObject):
+        """
+        Dataframe delta saving function
+        
+        Adds new and updated data to the dataframe_data table
+        Saved the set of rows and columns of that table 
+        that are needed to recreate the dataframe
+
+        Assumptions:
+            - The new dataframe is a modified version of the previous dataframe
+              (i.e. we suppose iterative modifications to the dataframe)
+            - Columns of the dataframe cannot change type,
+              create a new column instead of modifying the type
+            - The indexes of the dataframe are integers and we cannot reuse old indexes
+              that were removed
+
+        For more explanation of the execution of the function,
+        please take a look at the file 'save_df_test.py' containing
+        the iterative developement of this function and explanations of its execution
+        """
+        df = obj.value
+        db_cols, db_type_map = get_db_cols(self.cur, 'dataframe_data')
+        df_cols, df_rows, df_type_map = get_df_cols_rows(df)
+        if len([
+                k for k in db_type_map
+                if k in df_type_map and db_type_map[k] != df_type_map[k]
+        ]) != 0:
+            raise ValueError(
+                "A column type was changed, please don't do this. Create a new column instead."
+            )
+
+        inter_cols = [col for col in df_cols if col in db_cols]
+        add_cols = [col for col in df_cols if col not in db_cols]
+        df_indices = tuple([r[0] for r in df_rows])
+
+        max_rid_sql = "SELECT max_rid FROM dataframe_max_rid WHERE index in %s"
+        self.cur.execute(max_rid_sql, (df_indices, ))
+        max_rid_list = tuple([r[0] for r in self.cur])
+
+        if len(max_rid_list) > 0:
+            db_data_sql = """SELECT rid,{} 
+                    FROM dataframe_data 
+                    WHERE rid in %s
+                    """.format(','.join(inter_cols))
+            self.cur.execute(db_data_sql, (max_rid_list, ))
+            r_list = [r for r in self.cur]
+        else:
+            r_list = []
+        hash_list = [(hash(r[1:]), r[0]) for r in r_list]
+        hash_dic = dict(hash_list)
+
+        rids = []
+        update_rows = []
+        new_rows = []
+        for i, r in enumerate(df_rows):
+            row = tuple([
+                self.cast(r[0], df_type_map.get(r[1]))
+                for r in zip(r, df_cols) if r[1] in db_cols
+            ])
+            # if i < 5:
+            #     print(row)
+            rest_row = tuple(
+                [r[0] for r in zip(r, df_cols) if r[1] not in db_cols])
+            h = hash(row)
+            if h in hash_dic:
+                rid = hash_dic.get(h)
+                update_rows.append((*rest_row, rid))
+                rids.append(rid)
+            else:
+                new_rows.append(r)
+
+        if len(add_cols) != 0:
+            add_columns(self.cur, 'dataframe_data', add_cols, df_type_map)
+            update_sql = """
+                UPDATE dataframe_data 
+                SET {} WHERE rid = %s""".format(','.join(
+                map(lambda x: '{} = %s'.format(x), add_cols)))
+            execute_batch(self.cur, update_sql, update_rows)
+
+        insert_sql = """
+            INSERT INTO dataframe_data({})
+            VALUES %s RETURNING rid, index
+        """.format(','.join(df_cols))
+        new_rids_indices = execute_values(self.cur,
+                                          insert_sql,
+                                          new_rows,
+                                          fetch=True)
+        update_max_rids_sql = """
+            INSERT INTO dataframe_max_rid(max_rid, index) 
+            VALUES %s 
+            ON CONFLICT (index) DO UPDATE SET max_rid = EXCLUDED.max_rid"""
+        execute_values(self.cur, update_max_rids_sql, new_rids_indices)
+        new_rids = [x[0] for x in new_rids_indices]
+        rids.extend(new_rids)
+
+        insert_versioning_sql = """
+            INSERT INTO dataframe_delta_object(t, lineno, name, rlist, clist) 
+            VALUES (%s, %s, %s, %s, %s)"""
+        args = (obj.time, obj.lineno, obj.name, rids, df_cols)
+        self.cur.execute(insert_versioning_sql, args)
+
     def save_numpy(self, obj: DbObject):
         dim = len(obj.value.shape)
         if dim == 0 or dim == 1 or dim == 2:
-            sql = "INSERT INTO np_{}d_object(t, lineno, name, dtype) VALUES (%s,%s,%s,%s) RETURNING value".format(
-                dim)
+            sql = """
+                INSERT INTO np_{}d_object(t, lineno, name, dtype) 
+                VALUES (%s,%s,%s,%s) RETURNING value""".format(dim)
             args = (obj.time, obj.lineno, obj.name, str(obj.value.dtype))
             self.cur.execute(sql, args)
             table_id = self.cur.fetchone()[0]
@@ -167,3 +294,27 @@ class DbInterface(object):
         else:
             raise TypeError(
                 "Numpy arrays of dimension higher than 2 are not handled yet")
+
+    def cast(self, elem, psql_type):
+        """
+        Casts the element to the correct type/format
+        depending on its equivalent postgres type
+
+        This is used to be able to compare new (from the new dataframe) 
+        and old (from the database) dataframe rows using their hashes
+        """
+        if psql_type == 'real':
+            return float(format(elem, '.6g'))
+        elif psql_type == 'double precision':
+            return float(format(elem, '.15g'))
+        elif psql_type == 'timestamp':
+            if isinstance(elem, pd.Timestamp):
+                return elem.to_pydatetime()
+            else:
+                return elem
+        elif psql_type == 'text':
+            if type(elem) == float:
+                return "NaN"
+            return str(elem)
+        else:
+            return elem

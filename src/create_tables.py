@@ -157,6 +157,22 @@ def prepare_pandas_tables():
                 name text NOT NULL,
                 value serial NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS dataframe_delta_object (
+                id serial PRIMARY KEY,
+                t timestamptz NOT NULL DEFAULT current_timestamp,
+                lineno integer NOT NULL,
+                name text NOT NULL,
+                rlist integer array NOT NULL,
+                clist text array NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS dataframe_data (
+                rid serial PRIMARY KEY,
+                index bigint NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS dataframe_max_rid (
+                index bigint PRIMARY KEY,
+                max_rid integer NOT NULL
+            );
         """
     return sql
 
@@ -205,7 +221,11 @@ def prepare_test_tables():
             );
             CREATE TABLE IF NOT EXISTS test_dataframe_table (
                 rid serial PRIMARY KEY,
-                index integer NOT NULL
+                index bigint NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS test_mrm_table (
+                index bigint PRIMARY KEY,
+                max_rid integer NOT NULL
             );
         """
     return sql
