@@ -159,6 +159,7 @@ class DbInterface(object):
         elif obj.type is pd.DataFrame:
             if self.delta_logging:
                 self.save_dataframe_delta(obj)
+                self.cur.execute("VACUUM FULL dataframe_data")
             else:
                 self.save_pandas_default(obj)
         else:
