@@ -16,11 +16,12 @@ class Block:
         except Exception as e:
             raise e
         else:
-            if start < end:
-                self.start = start
-                self.end = end
-            else:
-                raise ValueError("Start value must be smaller than end value")
+            if start < 0:
+                raise ValueError("Start value must be positive")
+            if start > end:
+                raise ValueError("Start value must be smaller than or equal to end value")
+            self.start = start
+            self.end = end
 
     def __iter__(self):
         self.i = self.start
@@ -32,6 +33,14 @@ class Block:
             return res
         else:
             raise StopIteration
+
+    # Implementation of the 'in' operator
+    def __contains__(self, item):
+        return item >= self.start and item <= self.end
+
+    # checks if two blocks overlap
+    def overlap(self, other):
+        return self.start <= other.end and self.end >= other.start
 
     def __repr__(self):
         return 'Block({}, {})'.format(self.start, self.end)
@@ -46,46 +55,39 @@ class BlockList:
 
     Specifies essentially a union of integer ranges
     Implements the 'in' operator to check if an integer 
-    is in either of the contained blocks
+    is in any of the contained blocks
     """
     def __init__(self, *blocks):
         super(BlockList, self).__init__()
-        self.set = set()
+        self.blocks = []
         self.add_blocks(blocks)
 
     # Implementation of the 'in' operator
-    # If the list contains no blocks,
-    # return true by default
-    # (this feature can be changed depending on the need)
     def __contains__(self, item):
-        if len(self.set) == 0:
-            return True
-        else:
-            return item in self.set
+        for block in self.blocks:
+            if item in block:
+                return True
+        return False
 
-    def add_block(self, block):
-        self.set.update(block)
+    def add_block(self, new_block):
+        if not isinstance(new_block, Block):
+            raise TypeError("Argument must be of type Block (found: ",
+                            type(new_block), ")")
+        for block in self.blocks:
+            if block.overlap(new_block):
+                raise ValueError("New block must not overlap with previously defined blocks")
+        self.blocks.append(new_block)
 
     def add_blocks(self, blocks):
         for block in blocks:
-            self.set.update(block)
+            self.add_block(block)
 
-    # Return a list of disjoint blocks,
-    # so the returned blocks are not always
-    # exactly the same as the ones that were added
+    # Return the list of blocks as a tuple
     def get_blocks(self):
-        blocks = []
-        for a, b in itertools.groupby(enumerate(self.set),
-                                      lambda x: x[1] - x[0]):
-            b = list(b)
-            blocks.append(Block(b[0][1], b[-1][1]))
-        return tuple(blocks)
+        return tuple(self.blocks)
 
     def __repr__(self):
         return 'BlockList{}'.format(self.get_blocks())
 
-    # Change this if you change the behaviour of the 'in' operator
     def __str__(self):
-        if len(self.set) == 0:
-            return '[-inf, +inf]'
         return str(self.get_blocks())

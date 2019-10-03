@@ -1,6 +1,5 @@
 # temporary test folder and file
-test_pipelines/
-test.py
+test*
 
 # folder with papers for research
 papers/

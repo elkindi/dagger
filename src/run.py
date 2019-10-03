@@ -1,13 +1,15 @@
 import ast
+import astor
 import argparse
 import astpretty
-from block import Block
 from logger import Logger
+from executor import Executor
 from datetime import datetime
 from dbObject import DbObject
+from block import Block, BlockList
+from code_splitter import CodeSplitter
 from dbInterface import DbResource, DbInterface
 
-log = []
 ltz = datetime.utcnow().astimezone().tzinfo
 
 
@@ -15,12 +17,13 @@ ltz = datetime.utcnow().astimezone().tzinfo
 def log_variable(value: object,
                  name: str = None,
                  lineno: int = None,
-                 db: DbInterface = None):
+                 db: DbInterface = None,
+                 log=None):
     if name is None:
         return
     obj = DbObject(type(value), datetime.now(ltz), lineno, name, value)
     try:
-        db.save(obj)
+        res = db.save(obj)
     except Exception as e:
         log.append((obj, False, e))
     else:
@@ -29,37 +32,44 @@ def log_variable(value: object,
 
 # Runs a python script file and saves the variables defined in the given blocks
 # The modifier attribute functions are the functions that modify a given variable without an assignment. ex: append, pop
-def main(name, blocks=[], modifier_attr_fcts=[], delta_logging=True):
+def main(name,
+         blocks=[],
+         modifier_attr_fcts=[],
+         delta_logging=True,
+         split_command=None):
 
     # Read the script file and parse the code into an ast
     source = open(name, 'r').read()
     tree = ast.parse(source)
 
+    blocklist = BlockList(*blocks)
+
+    splitter = CodeSplitter(blocklist)
+    tree_splits, block_flags = splitter.split(tree)
+
+    print("Blocks checked:")
+    print(blocklist.get_blocks())
+
     # Create a Logger wih a given log function and specify the blocks and mafs
-    logger = Logger(log_variable, 'val', 'name', 'lineno', 'db')
-    logger.add_blocks(blocks)
+    logger = Logger(log_variable, 'val', 'name', 'lineno', 'db', 'log')
     logger.add_modifier_attr_fcts(modifier_attr_fcts)
 
-    print("Lines checked:")
-    print(logger.get_blocks())
     print("Modifier functions logged:")
     print(list(logger.get_modifier_attr_fcts()))
 
-    # print("Tree:")
-    # astpretty.pprint(tree)
-
     # Visit the ast of the source code and add the needed logging functions
-    new_tree = logger.visit(tree)
-    code = compile(new_tree, name, 'exec')
+    code_splits = []
+    for i, tree_split in enumerate(tree_splits):
+        print("-----", i, "-----")
+        if block_flags[i] == 1:
+            tree_split = logger.visit(tree_split)
+        print(astor.to_source(tree_split))
+        code_splits.append(compile(tree_split, name, 'exec'))
 
-    # print("New Tree:")
-    # astpretty.pprint(new_tree)
-
-    # Execute the new code
-    db_resource = DbResource(delta_logging)
-    with db_resource as db:
-        print("Execution:")
-        exec(code, {'log': log, 'log_variable': log_variable, 'db': db})
+    executor = Executor(code_splits, block_flags, delta_logging=delta_logging)
+    executor.set_split_command(split_command)
+    executor.run(log_func=log_variable)
+    log = executor.get_log()
 
     # Print the log after execution
     print("Log:")
@@ -92,7 +102,7 @@ if __name__ == '__main__':
     # Parse input string into a boolean value
     def str2bool(v):
         if isinstance(v, bool):
-           return v
+            return v
         if v.lower() in ('yes', 'true', 't', 'y', '1'):
             return True
         elif v.lower() in ('no', 'false', 'f', 'n', '0'):
@@ -129,5 +139,15 @@ if __name__ == '__main__':
                         nargs='?',
                         help='Save dataframes using delta logging or not'
                         )  # Save values with delta logging or not
+    parser.add_argument('-s',
+                        '--split',
+                        default=None,
+                        dest='s',
+                        type=str,
+                        help='Split command')
     args = parser.parse_args()
-    main(args.filename, blocks=args.b, modifier_attr_fcts=args.maf, delta_logging=args.dl)
+    main(args.filename,
+         blocks=args.b,
+         modifier_attr_fcts=args.maf,
+         delta_logging=args.dl,
+         split_command=args.s)

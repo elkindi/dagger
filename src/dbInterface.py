@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from dbObject import DbObject
-from psycopg2.extensions import AsIs
+from psycopg2.extensions import AsIs, ISOLATION_LEVEL_AUTOCOMMIT
 from datetime import date, time, datetime
 from psycopg2.extras import execute_values
 from dataframe_utils import get_df_cols_rows
@@ -79,11 +79,15 @@ class DbInterface(object):
         self.delta_logging = delta_logging
         self.cur = None
         self.conn = None
+        self.split_id = None
 
     # Disconnect without committing if the instance is deleted
     def __del__(self):
         if self.conn is not None:
             self.disconnect(False)
+
+    def __deepcopy__(self, memo):
+        return self
 
     # Connect to the database
     # raises an exception if the connection fails
@@ -102,6 +106,26 @@ class DbInterface(object):
     def commit(self):
         if self.conn is not None:
             self.conn.commit()
+
+    def vacuum(self):
+        self.commit()
+        old_isolation_level = self.conn.isolation_level
+        self.conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        self.cur.execute("VACUUM FULL")
+        self.commit()
+        self.conn.set_isolation_level(old_isolation_level)
+
+    def set_split_id(self, split_id: int):
+        if isinstance(split_id, int):
+            if split_id >= 0:
+                self.split_id = split_id
+            else:
+                raise ValueError("split_id must be positive")
+        else:
+            raise TypeError("split_id must be an integer")
+
+    def reset_split_id(self):
+        self.split_id = None
 
     # Save a DbObject in the database
     # If the type of the object is handled,
@@ -123,9 +147,9 @@ class DbInterface(object):
 
     def save_scalar(self, obj: DbObject):
         sql = """
-            INSERT INTO {}_scalar(t, lineno, name, value) 
-            VALUES (%s,%s,%s,%s)""".format(obj.type.__name__)
-        args = (obj.time, obj.lineno, obj.name, obj.value)
+            INSERT INTO {}_scalar(s_id, t, lineno, name, value) 
+            VALUES (%s,%s,%s,%s,%s)""".format(obj.type.__name__)
+        args = (self.split_id, obj.time, obj.lineno, obj.name, obj.value)
         self.cur.execute(sql, args)
 
     def save_array_like(self, obj: DbObject):
@@ -134,22 +158,23 @@ class DbInterface(object):
         except Exception as e:
             raise e
         else:
-            sql, args = None, (obj.time, obj.lineno, type(obj.value).__name__,
-                               obj.name)
+            sql, args = None, (self.split_id, obj.time, obj.lineno,
+                               type(obj.value).__name__, obj.name)
             arr = list(obj.value)
             if arr_type is ArrayType.EMPTY:
                 sql = """
-                    INSERT INTO empty_array(t, lineno, arr_type, name) 
-                    VALUES (%s,%s,%s,%s)"""
+                    INSERT INTO empty_array(s_id, t, lineno, arr_type, name) 
+                    VALUES (%s,%s,%s,%s,%s)"""
             elif arr_type is ArrayType.COMPOUND:
                 sql = """
-                    INSERT INTO compound_scalar_array(t, lineno, arr_type, name, types, value) 
-                    VALUES (%s,%s,%s,%s,%s,%s)"""
+                    INSERT INTO compound_scalar_array(s_id, t, lineno, arr_type, name, types, value) 
+                    VALUES (%s,%s,%s,%s,%s,%s,%s)"""
                 args += (get_element_types(arr), list(map(str, arr)))
             else:
                 sql = """
-                    INSERT INTO {}_scalar_array(t, lineno, arr_type, name, value) 
-                    VALUES (%s,%s,%s,%s,%s)""".format(type(arr[0]).__name__)
+                    INSERT INTO {}_scalar_array(s_id, t, lineno, arr_type, name, value) 
+                    VALUES (%s,%s,%s,%s,%s,%s)""".format(
+                    type(arr[0]).__name__)
                 args += (arr, )
             self.cur.execute(sql, args)
 
@@ -159,7 +184,7 @@ class DbInterface(object):
         elif obj.type is pd.DataFrame:
             if self.delta_logging:
                 self.save_dataframe_delta(obj)
-                self.cur.execute("VACUUM FULL dataframe_data")
+                self.vacuum()
             else:
                 self.save_pandas_default(obj)
         else:
@@ -167,10 +192,10 @@ class DbInterface(object):
 
     def save_pandas_default(self, obj: DbObject):
         sql = """
-            INSERT INTO {}_object(t, lineno, name) 
-            VALUES (%s,%s,%s) RETURNING value""".format(
+            INSERT INTO {}_object(s_id, t, lineno, name) 
+            VALUES (%s,%s,%s,%s) RETURNING value""".format(
             obj.type.__name__.lower())
-        args = (obj.time, obj.lineno, obj.name)
+        args = (self.split_id, obj.time, obj.lineno, obj.name)
         self.cur.execute(sql, args)
         table_id = self.cur.fetchone()[0]
         table_name = "{}_{}".format(obj.type.__name__.lower(), table_id)
@@ -179,7 +204,7 @@ class DbInterface(object):
     def save_dataframe_delta(self, obj: DbObject):
         """
         Dataframe delta saving function
-        
+
         Adds new and updated data to the dataframe_data table
         Saved the set of rows and columns of that table 
         that are needed to recreate the dataframe
@@ -199,13 +224,15 @@ class DbInterface(object):
         df = obj.value
         db_cols, db_type_map = get_db_cols(self.cur, 'dataframe_data')
         df_cols, df_rows, df_type_map = get_df_cols_rows(df)
-        if len([
-                k for k in db_type_map
-                if k in df_type_map and db_type_map[k] != df_type_map[k]
-        ]) != 0:
+        wrong = [
+            k for k in db_type_map
+            if k in df_type_map and db_type_map[k] != df_type_map[k]
+        ]
+        if len(wrong) != 0:
             raise ValueError(
-                "A column type was changed, please don't do this. Create a new column instead."
-            )
+                """A column type was changed, please don't do this. 
+                Create a new column instead. (previous: {}, found: {})""".
+                format(db_type_map[wrong[0]], df_type_map[wrong[0]]))
 
         inter_cols = [col for col in df_cols if col in db_cols]
         add_cols = [col for col in df_cols if col not in db_cols]
@@ -272,18 +299,19 @@ class DbInterface(object):
         rids.extend(new_rids)
 
         insert_versioning_sql = """
-            INSERT INTO dataframe_delta_object(t, lineno, name, rlist, clist) 
-            VALUES (%s, %s, %s, %s, %s)"""
-        args = (obj.time, obj.lineno, obj.name, rids, df_cols)
+            INSERT INTO dataframe_delta_object(s_id, t, lineno, name, rlist, clist) 
+            VALUES (%s,%s,%s,%s,%s,%s)"""
+        args = (self.split_id, obj.time, obj.lineno, obj.name, rids, df_cols)
         self.cur.execute(insert_versioning_sql, args)
 
     def save_numpy(self, obj: DbObject):
         dim = len(obj.value.shape)
         if dim == 0 or dim == 1 or dim == 2:
             sql = """
-                INSERT INTO np_{}d_object(t, lineno, name, dtype) 
-                VALUES (%s,%s,%s,%s) RETURNING value""".format(dim)
-            args = (obj.time, obj.lineno, obj.name, str(obj.value.dtype))
+                INSERT INTO np_{}d_object(s_id, t, lineno, name, dtype) 
+                VALUES (%s,%s,%s,%s,%s) RETURNING value""".format(dim)
+            args = (self.split_id, obj.time, obj.lineno, obj.name,
+                    str(obj.value.dtype))
             self.cur.execute(sql, args)
             table_id = self.cur.fetchone()[0]
             table_name = "np_{}d_{}".format(dim, table_id)

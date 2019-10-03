@@ -1,7 +1,6 @@
 import ast
 import itertools
 from typing import List
-from block import Block, BlockList
 
 NodeList = List[ast.AST]
 
@@ -21,13 +20,6 @@ class Logger(ast.NodeTransformer):
             self.log_function = log_function
         self.log_function_args = log_function_args
         self.modifier_functions = set(['append'])
-        self.blockList = BlockList()
-
-    def add_blocks(self, blocks):
-        self.blockList.add_blocks(blocks)
-
-    def get_blocks(self):
-        return self.blockList
 
     def add_modifier_attr_fcts(self, fct_names):
         self.modifier_functions.update(fct_names)
@@ -50,6 +42,8 @@ class Logger(ast.NodeTransformer):
                 args.append(ast.Num(node.lineno))
             elif arg == 'db':
                 args.append(ast.Name(id='db', ctx=ast.Load()))
+            elif arg == 'log':
+                args.append(ast.Name(id='log', ctx=ast.Load()))
         return args
 
     # We don't want handle user-defined classes yet,
@@ -75,19 +69,14 @@ class Logger(ast.NodeTransformer):
         (is_log_expr, modified_node) = self.is_log_expr(node)
         if is_log_expr:
             return modified_node
-        elif node.lineno in self.blockList:
+        else:
             log_nodes = self.log_expr(node)
             return [node, *log_nodes]
-        else:
-            return node
 
     # Log the assigned variable
     def visit_Assign(self, node):
-        if node.lineno in self.blockList:
-            log_nodes = self.log_assign(node)
-            return [node, *log_nodes]
-        else:
-            return node
+        log_nodes = self.log_assign(node)
+        return [node, *log_nodes]
 
     # Checks if the expression is a call to the logging function
     # and returns a new node with all the needed arguments if so

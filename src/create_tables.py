@@ -9,6 +9,7 @@ def prepare_scalar_tables():
     sql = """
             CREATE TABLE IF NOT EXISTS int_scalar (
                 id serial PRIMARY KEY,
+                s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
                 name text NOT NULL,
@@ -16,6 +17,7 @@ def prepare_scalar_tables():
             );
             CREATE TABLE IF NOT EXISTS float_scalar (
                 id serial PRIMARY KEY,
+                s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
                 name text NOT NULL,
@@ -23,6 +25,7 @@ def prepare_scalar_tables():
             );
             CREATE TABLE IF NOT EXISTS str_scalar (
                 id serial PRIMARY KEY,
+                s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
                 name text NOT NULL,
@@ -30,6 +33,7 @@ def prepare_scalar_tables():
             );
             CREATE TABLE IF NOT EXISTS bool_scalar (
                 id serial PRIMARY KEY,
+                s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
                 name text NOT NULL,
@@ -37,6 +41,7 @@ def prepare_scalar_tables():
             );
             CREATE TABLE IF NOT EXISTS date_scalar (
                 id serial PRIMARY KEY,
+                s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
                 name text NOT NULL,
@@ -44,6 +49,7 @@ def prepare_scalar_tables():
             );
             CREATE TABLE IF NOT EXISTS time_scalar (
                 id serial PRIMARY KEY,
+                s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
                 name text NOT NULL,
@@ -51,6 +57,7 @@ def prepare_scalar_tables():
             );
             CREATE TABLE IF NOT EXISTS datetime_scalar (
                 id serial PRIMARY KEY,
+                s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
                 name text NOT NULL,
@@ -66,6 +73,7 @@ def prepare_scalar_array_tables():
     sql = """
             CREATE TABLE IF NOT EXISTS empty_array (
                 id serial PRIMARY KEY,
+                s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
                 arr_type text NOT NULL,
@@ -73,6 +81,7 @@ def prepare_scalar_array_tables():
             );
             CREATE TABLE IF NOT EXISTS int_scalar_array (
                 id serial PRIMARY KEY,
+                s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
                 arr_type text NOT NULL,
@@ -81,6 +90,7 @@ def prepare_scalar_array_tables():
             );
             CREATE TABLE IF NOT EXISTS float_scalar_array (
                 id serial PRIMARY KEY,
+                s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
                 arr_type text NOT NULL,
@@ -89,6 +99,7 @@ def prepare_scalar_array_tables():
             );
             CREATE TABLE IF NOT EXISTS str_scalar_array (
                 id serial PRIMARY KEY,
+                s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
                 arr_type text NOT NULL,
@@ -97,6 +108,7 @@ def prepare_scalar_array_tables():
             );
             CREATE TABLE IF NOT EXISTS bool_scalar_array (
                 id serial PRIMARY KEY,
+                s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
                 arr_type text NOT NULL,
@@ -105,6 +117,7 @@ def prepare_scalar_array_tables():
             );
             CREATE TABLE IF NOT EXISTS date_scalar_array (
                 id serial PRIMARY KEY,
+                s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
                 arr_type text NOT NULL,
@@ -113,6 +126,7 @@ def prepare_scalar_array_tables():
             );
             CREATE TABLE IF NOT EXISTS time_scalar_array (
                 id serial PRIMARY KEY,
+                s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
                 arr_type text NOT NULL,
@@ -121,6 +135,7 @@ def prepare_scalar_array_tables():
             );
             CREATE TABLE IF NOT EXISTS datetime_scalar_array (
                 id serial PRIMARY KEY,
+                s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
                 arr_type text NOT NULL,
@@ -129,6 +144,7 @@ def prepare_scalar_array_tables():
             );
             CREATE TABLE IF NOT EXISTS compound_scalar_array (
                 id serial PRIMARY KEY,
+                s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
                 arr_type text NOT NULL,
@@ -145,6 +161,7 @@ def prepare_pandas_tables():
     sql = """
             CREATE TABLE IF NOT EXISTS dataframe_object (
                 id serial PRIMARY KEY,
+                s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
                 name text NOT NULL,
@@ -152,6 +169,7 @@ def prepare_pandas_tables():
             );
             CREATE TABLE IF NOT EXISTS series_object (
                 id serial PRIMARY KEY,
+                s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
                 name text NOT NULL,
@@ -159,6 +177,7 @@ def prepare_pandas_tables():
             );
             CREATE TABLE IF NOT EXISTS dataframe_delta_object (
                 id serial PRIMARY KEY,
+                s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
                 name text NOT NULL,
@@ -182,6 +201,7 @@ def prepare_numpy_tables():
     sql = """
             CREATE TABLE IF NOT EXISTS np_0d_object (
                 id serial PRIMARY KEY,
+                s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
                 name text NOT NULL,
@@ -190,6 +210,7 @@ def prepare_numpy_tables():
             );
             CREATE TABLE IF NOT EXISTS np_1d_object (
                 id serial PRIMARY KEY,
+                s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
                 name text NOT NULL,
@@ -198,6 +219,7 @@ def prepare_numpy_tables():
             );
             CREATE TABLE IF NOT EXISTS np_2d_object (
                 id serial PRIMARY KEY,
+                s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
                 name text NOT NULL,
