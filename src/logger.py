@@ -19,7 +19,7 @@ class Logger(ast.NodeTransformer):
         elif isinstance(log_function, str):
             self.log_function = log_function
         self.log_function_args = log_function_args
-        self.modifier_functions = set(['append', 'pop'])
+        self.modifier_functions = set(['append', 'pop', 'sort'])
 
     def add_modifier_attr_fcts(self, fct_names):
         self.modifier_functions.update(fct_names)
