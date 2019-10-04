@@ -5,7 +5,14 @@ from split_primitive_classes import DfPartitioner, SplitCommandParser
 
 
 class Executor(object):
-    """docstring for Executor"""
+    """
+    Executor class
+
+    Gets all the code blocks to execute
+    and the parameters for the splitting
+
+    Executes everything and saves a log of the last execution
+    """
     def __init__(self,
                  code_list=None,
                  block_flag_list=None,
@@ -20,15 +27,19 @@ class Executor(object):
         self.delta_logging = delta_logging
         self.log = None
 
+    # Get the log of the last execution
     def get_log(self):
         return self.log
 
+    # Set the code block list
     def set_code_list(self, code_list):
         self.code_list = code_list
 
+    # Set the block flag list
     def set_block_flag_list(self, block_flag_list):
         self.block_flag_list = block_flag_list
 
+    # Save the parameters of the split command
     def set_split_command(self, split_command):
         if split_command is None:
             self.split_params = None
@@ -39,9 +50,11 @@ class Executor(object):
                                  " is out of the defined block range (",
                                  self.num_logged_blocks, ")")
 
+    # Set the delta logging parameter
     def set_delta_logging(self, delta_logging):
         self.delta_logging = delta_logging
 
+    # Run the given code blocks using the given logging function
     def run(self, log_func):
         if self.code_list is None:
             raise ValueError("Code list is not defined")
@@ -52,7 +65,11 @@ class Executor(object):
             lb_count = 0  # logged block count
             self.log = []
             if self.split_params is not None:
-                globs_list = [{'log_variable': log_func, 'log': self.log, 'db': db}]
+                globs_list = [{
+                    'log_variable': log_func,
+                    'log': self.log,
+                    'db': db
+                }]
                 for i, code in enumerate(self.code_list):
                     if self.block_flag_list[i] == 1:
                         lb_count += 1

@@ -4,13 +4,30 @@ from block import Block, BlockList
 
 
 class CodeSplitter():
-    """docstring for CodeSplitter"""
+    """
+    CodeSplitter class
+
+    Splits input code given as an ast.Module into different code blocks
+
+    Only top-level expressions are looked at, so for example the following function:
+
+    22:
+    23: def f(a):
+    24:     for i in range(2):
+    25:         a += i
+    26:     return a
+    27:
+
+    cannot be split into multiple blocks and 
+    will be in the block that contains the line number 23
+    """
     def __init__(self, blocklist: BlockList = None):
         super(CodeSplitter, self).__init__()
         self.blocklist = blocklist
         if blocklist is None:
             self.blocklist = BlockList()
 
+    # Returns the code of block between start_lineno and end_lineno
     def basic_split(self, tree: ast.Module, start_lineno: int,
                     end_lineno: int):
         node = copy.deepcopy(tree)
@@ -24,6 +41,12 @@ class CodeSplitter():
             raise TypeError("Argument must be a Module node")
         return node
 
+    # Returns a list of code blocks and
+    # a flag list specifying whether each code block corresponds
+    # to a block from the list or to code in between two blocks
+    # Ex: if the blocklist was: ([12,23], [41,56]) and the code was 60 lines long,
+    # the function would return code blocks with line numbers:
+    # ([1,11], [12,23], [24,40], [41,56], [57,60]) and list of flags: [0,1,0,1,0]
     def split(self, tree: ast.Module, blocklist: BlockList = None):
         if blocklist is None:
             blocklist = self.blocklist
@@ -58,6 +81,7 @@ class CodeSplitter():
     def get_blocks(self):
         return self.blocklist.get_blocks()
 
+    # Get the maximum line number of the given code
     def get_max_lineno(self, tree: ast.AST):
         class LineCounter(ast.NodeVisitor):
             """docstring for LineCounter"""

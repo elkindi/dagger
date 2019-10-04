@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 from datetime import time, date, datetime
-
 """
 Dictionary with mapping from python,
 pandas and numpy types to postgres types

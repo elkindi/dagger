@@ -14,6 +14,9 @@ ltz = datetime.utcnow().astimezone().tzinfo
 
 
 # Saves the variable in the database and adds an entry in the log
+# If you change the arguments of this function, you also need to
+# modify them in the Logger class and below in the arguments when creating the logger,
+# and possibly add, change or remove variables in the globals in executor
 def log_variable(value: object,
                  name: str = None,
                  lineno: int = None,
@@ -30,8 +33,11 @@ def log_variable(value: object,
         log.append((obj, True))
 
 
-# Runs a python script file and saves the variables defined in the given blocks
-# The modifier attribute functions are the functions that modify a given variable without an assignment. ex: append, pop
+# Runs a python script file and saves the variables
+# defined in the given blocks
+# The modifier attribute functions are the functions
+# that modify a given variable without an assignment.
+# ex: append, pop
 def main(name,
          blocks=[],
          modifier_attr_fcts=[],
@@ -44,13 +50,15 @@ def main(name,
 
     blocklist = BlockList(*blocks)
 
+    # Split the code in different code blocks
+    # according to the given blocklist
     splitter = CodeSplitter(blocklist)
     tree_splits, block_flags = splitter.split(tree)
 
     print("Blocks checked:")
     print(blocklist.get_blocks())
 
-    # Create a Logger wih a given log function and specify the blocks and mafs
+    # Create a Logger wih a given log function and specify the mafs
     logger = Logger(log_variable, 'val', 'name', 'lineno', 'db', 'log')
     logger.add_modifier_attr_fcts(modifier_attr_fcts)
 
@@ -60,12 +68,16 @@ def main(name,
     # Visit the ast of the source code and add the needed logging functions
     code_splits = []
     for i, tree_split in enumerate(tree_splits):
-        print("-----", i, "-----")
         if block_flags[i] == 1:
             tree_split = logger.visit(tree_split)
-        print(astor.to_source(tree_split))
+        # # Uncomment/Comment this to view/hide
+        # # source code of created code blocks
+        # print("-----", i, "-----")
+        # print(astor.to_source(tree_split))
         code_splits.append(compile(tree_split, name, 'exec'))
 
+    # Execute the given code blocks
+    # Specify delta logging and split command as needed
     executor = Executor(code_splits, block_flags, delta_logging=delta_logging)
     executor.set_split_command(split_command)
     executor.run(log_func=log_variable)
@@ -111,25 +123,25 @@ if __name__ == '__main__':
             raise argparse.ArgumentTypeError('Boolean value expected.')
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('filename',
-                        help='python file to run')  # Get the filename
-    parser.add_argument(
-        '-b',
-        '--blocks',
-        dest='b',
-        default=[],
-        type=block_list,
-        nargs='*',
-        help='Pipeline blocks written as (start,end)'
-    )  # Get the list of blocks to inspect, if no blocks are given, all lines are checked
+    # Get the filename
+    parser.add_argument('filename', help='python file to run')
+    # Get the list of blocks to inspect, if no blocks are given, all lines are checked
+    parser.add_argument('-b',
+                        '--blocks',
+                        dest='b',
+                        default=[],
+                        type=block_list,
+                        nargs='*',
+                        help='Pipeline blocks written as (start,end)')
+    # Get the list of modifier attribute functions
     parser.add_argument('-maf',
                         '--modifier_attr_fcts',
                         default=[],
                         dest='maf',
                         type=str,
                         nargs='*',
-                        help='Modifier attribute functions (ex: append)'
-                        )  # Get the list of modifier attribute functions
+                        help='Modifier attribute functions (ex: append)')
+    # Save values with delta logging or not
     parser.add_argument('-dl',
                         '--delta_logging',
                         const=True,
@@ -137,8 +149,9 @@ if __name__ == '__main__':
                         dest='dl',
                         type=str2bool,
                         nargs='?',
-                        help='Save dataframes using delta logging or not'
-                        )  # Save values with delta logging or not
+                        help='Save dataframes using delta logging or not')
+    # Command to split a dataframe during execution
+    # To view command syntax, look at the SplitCommandParser class
     parser.add_argument('-s',
                         '--split',
                         default=None,

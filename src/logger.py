@@ -19,7 +19,7 @@ class Logger(ast.NodeTransformer):
         elif isinstance(log_function, str):
             self.log_function = log_function
         self.log_function_args = log_function_args
-        self.modifier_functions = set(['append'])
+        self.modifier_functions = set(['append', 'pop'])
 
     def add_modifier_attr_fcts(self, fct_names):
         self.modifier_functions.update(fct_names)
@@ -46,17 +46,17 @@ class Logger(ast.NodeTransformer):
                 args.append(ast.Name(id='log', ctx=ast.Load()))
         return args
 
-    # We don't want handle user-defined classes yet,
+    # We don't want to handle user-defined classes yet,
     # so no generic_visit call (do not visit its children)
     def visit_ClassDef(self, node):
         return node
 
-    # # We don't want handle for-loops yet,
+    # # We don't want to handle for-loops yet,
     # # so no generic_visit call (do not visit its children)
     # def visit_For(self, node):
     #     return node
 
-    # # We don't want handle for-loops yet,
+    # # We don't want to handle for-loops yet,
     # # so no generic_visit call (do not visit its children)
     # def visit_While(self, node):
     #     return node

@@ -16,7 +16,8 @@ class DbResource(object):
     DbResource class
 
     Allows to write:
-    with DbResource() as db:
+    db_resource = DbResource(delta_logging)
+    with db_resource as db:
        db.save(...)
 
     The returned db object is an instance of DbInterface
@@ -86,6 +87,8 @@ class DbInterface(object):
         if self.conn is not None:
             self.disconnect(False)
 
+    # when deepcopying the globals,
+    # just return the same dbInterface instance
     def __deepcopy__(self, memo):
         return self
 
@@ -107,6 +110,9 @@ class DbInterface(object):
         if self.conn is not None:
             self.conn.commit()
 
+    # Vacuum the database
+    # To do after a big table update (ex: after
+    # adding a new column with data during delta logging)
     def vacuum(self):
         self.commit()
         old_isolation_level = self.conn.isolation_level
@@ -115,6 +121,7 @@ class DbInterface(object):
         self.commit()
         self.conn.set_isolation_level(old_isolation_level)
 
+    # Set the current split id
     def set_split_id(self, split_id: int):
         if isinstance(split_id, int):
             if split_id >= 0:
@@ -124,6 +131,7 @@ class DbInterface(object):
         else:
             raise TypeError("split_id must be an integer")
 
+    # Set the current split id to None
     def reset_split_id(self):
         self.split_id = None
 

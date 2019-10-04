@@ -19,26 +19,16 @@ class Block:
             if start < 0:
                 raise ValueError("Start value must be positive")
             if start > end:
-                raise ValueError("Start value must be smaller than or equal to end value")
+                raise ValueError(
+                    "Start value must be smaller than or equal to end value")
             self.start = start
             self.end = end
-
-    def __iter__(self):
-        self.i = self.start
-        return self
-
-    def __next__(self):
-        if self.i <= self.end:
-            res, self.i = self.i, self.i + 1
-            return res
-        else:
-            raise StopIteration
 
     # Implementation of the 'in' operator
     def __contains__(self, item):
         return item >= self.start and item <= self.end
 
-    # checks if two blocks overlap
+    # Checks if two blocks overlap
     def overlap(self, other):
         return self.start <= other.end and self.end >= other.start
 
@@ -54,6 +44,7 @@ class BlockList:
     BlockList class
 
     Specifies essentially a union of integer ranges
+
     Implements the 'in' operator to check if an integer 
     is in any of the contained blocks
     """
@@ -75,7 +66,9 @@ class BlockList:
                             type(new_block), ")")
         for block in self.blocks:
             if block.overlap(new_block):
-                raise ValueError("New block must not overlap with previously defined blocks")
+                raise ValueError(
+                    "New block must not overlap with previously defined blocks"
+                )
         self.blocks.append(new_block)
 
     def add_blocks(self, blocks):

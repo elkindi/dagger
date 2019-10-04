@@ -4,6 +4,8 @@ from database_utils import get_db_cols
 from dataframe_utils import get_df_cols_rows
 from psycopg2.extras import execute_values, execute_batch
 
+# Used during the testing of the execution duration of the functions
+# Do not show durations that are longer than this value in seconds
 DT_LIMIT = 0.1
 
 

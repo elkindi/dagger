@@ -49,11 +49,11 @@ class ArrayType(Enum):
 # Get the type of an array-like object (list, tuple, set, frozenset)
 #
 # If all elements have the same python type (one of the base types),
-# return the correspinding ArrayType
+# return the corresponding ArrayType
 #
 # If the list is empty, return ArrayType.EMPTY
 #
-# If the array contains elements of multuple base types,
+# If the array contains elements of multiple base types,
 # return ArrayType.COMPOUND
 #
 # If the array contains elements of a different type, raise a ValueError

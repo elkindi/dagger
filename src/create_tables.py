@@ -1,5 +1,16 @@
 import sys
 from dbConnection import connect, disconnect
+"""
+Code for creating and resetting the database tables
+
+Most tables have the same columns, but the tables themselves
+indicate what the type of their elements is
+
+This could maybe be changed by creating one table with an extra column
+specifying the object type instead of all the 
+
+Not sure which idea is better
+"""
 
 
 # for scalar values ex: 4, 'a', True, 12.90

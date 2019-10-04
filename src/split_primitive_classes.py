@@ -6,8 +6,31 @@ from pandas import DataFrame
 
 
 class SplitCommandParser(object):
-    """docstring for SplitCommandParser"""
+    """
+    SplitCommandParser class
 
+    Parses a split command and returns 
+    the arguments as a dictionary
+
+    List of arguments:
+     - dataframe name
+     - column name
+     - comparison operator
+     - comparison value
+     - block number
+
+    Example of command:
+    "SPLIT students WHERE age >= 21 ON BLOCK 2"
+
+    This will split the dataframe named 'students' in two:
+    one containing the stundents aged 21 and more, 
+    and another one containing th younger students
+
+    This dataframe splitting will be done right before the 
+    execution of the second block defined by the user
+    """
+
+    # regex pattern
     pattern = re.compile(
         r"SPLIT (?P<df_name>[\w]+) WHERE (?P<col_name>[\w]+) " +
         r"(?P<comp_op><|<=|=|!=|>=|>) (?P<comp_val>[\S]+) " +
@@ -41,11 +64,22 @@ class SplitCommandParser(object):
 
 
 class DfPartitioner(object):
-    """docstring for DfPartitioner"""
+    """
+    DfPartitioner class
+
+    Partitions a dataframe using the parameters 
+    returned by SplitCommandParser
+
+    When given the globals from the code execution 
+    instead of a dataframe, partitions the dataframe if it exists
+    and returns multiple copies of the globals, each with a
+    different partition of the dataframe.
+    """
     def __init__(self, params):
         super(DfPartitioner, self).__init__()
         self.params = params
 
+    # Partitions a given dataframe
     def partition(self, df: DataFrame):
         col_name = self.params['col_name']
         if col_name not in df.columns:
@@ -60,6 +94,9 @@ class DfPartitioner(object):
             return [df_comp_true, df_comp_false]
         return [df]
 
+    # Deepcopy function for the globals
+    # The standard deepcopy can't be used,
+    # because the module objects can't be copied
     def deepcopy_globs(self, globs):
         new_globs = {}
         for k, v in globs.items():
@@ -74,6 +111,9 @@ class DfPartitioner(object):
                 new_globs[k] = v
         return new_globs
 
+    # Returns multiple copies of the globals,
+    # each with a different partition of
+    # the dataframe that has to be partitioned
     def partition_from_globs(self, globs: dict):
         df_name = self.params['df_name']
         if df_name not in globs.keys():
