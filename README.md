@@ -129,7 +129,11 @@ This would save all the variables up to line 52
     * Pipeline and data comparison
  - Dagger Query Language (DQL) to allow users to interact with and query the data saved during the execution
  
+## Issues
+
+For any issues or questions related to the code, open a new git issue or send a mail to maxime.schoemans@ulb.ac.be
+
 ## License
 
-dagger is licensed under the terms of the MIT License (see the file
+Dagger is licensed under the terms of the MIT License (see the file
 [LICENSE](https://github.com/mschoema/dagger/blob/master/LICENSE)).
