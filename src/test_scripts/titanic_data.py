@@ -6,8 +6,8 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # Load in the train and test datasets
-train = pd.read_csv('./test_pipelines/titanic_train.csv')
-test = pd.read_csv('./test_pipelines/titanic_test.csv')
+train = pd.read_csv('./test_scripts/titanic_train.csv')
+test = pd.read_csv('./test_scripts/titanic_test.csv')
 
 # Store our passenger ID for easy access
 PassengerId = test['PassengerId']

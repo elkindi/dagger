@@ -20,7 +20,7 @@ print(tf.__version__)
 pd.set_option('display.width', 900)
 
 # start working on model
-df = (pd.read_csv('./test_pipelines/taxi_train.csv',
+df = (pd.read_csv('./test_scripts/taxi_train.csv',
                   nrows=100,
                   encoding='utf8').drop(['key'], axis=1))
 
@@ -168,7 +168,7 @@ history = model.fit(x=X,
                     verbose=2)
 
 print('generating predictions for test data')
-test = pd.read_csv('./test_pipelines/taxi_test.csv', nrows=200)
+test = pd.read_csv('./test_scripts/taxi_test.csv', nrows=200)
 test.pickup_datetime = pd.to_datetime(test.pickup_datetime,
                                       format='%Y-%m-%d %H:%M:%S %Z')
 # test.pickup_latitude = test.pickup_latitude.astype('float32')
