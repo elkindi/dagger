@@ -2,7 +2,7 @@
 
 Python data debugger
 
-""" Dagger (Data Debugger) is an end-to-end data debugger that abstracts key data-centric primitives to enable users to quickly identify and mitigate data-related problems in a given pipeline. """ - Quote from the [Dagger paper](https://github.com/mschoema/dagger/blob/master/papers/Dagger%20A%20Data%20(not%20code)%20Debugger.pdf)
+""" Dagger (Data Debugger) is an end-to-end data debugger that abstracts key data-centric primitives to enable users to quickly identify and mitigate data-related problems in a given pipeline. """ - Quote from the Dagger paper
 
 ## Execution
 
