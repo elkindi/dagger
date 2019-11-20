@@ -6,6 +6,7 @@ from sqlalchemy import create_engine
 # Returns an sqlalchemy engine with the correct configs
 def get_engine():
     eng_config = engine_config()
+    print(eng_config)
     engine = create_engine(eng_config)
     return engine
 
