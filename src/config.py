@@ -24,6 +24,6 @@ def config(filename=DATABASE_CONFIG_PATH, section='postgresql'):
 # Get the configs in the format needed to create an sqlalchemy engine
 def engine_config(filename=DATABASE_CONFIG_PATH, section='postgresql'):
     db = config(filename, section)
-    return 'postgresql+psycopg2://{}@{}:{}/{}'.format(db['user'], db['host'],
+    return 'postgresql+psycopg2://{}:{}@{}:{}/{}'.format(db['user'], db['password'], db['host'], 
                                                       db['port'],
                                                       db['database'])
