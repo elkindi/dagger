@@ -7,9 +7,18 @@ Python data debugger
 ## Execution
 
 ### Prerequisits
- - python 3
+ - python 3.6
  - postgresql
  
+### Requirements
+
+All python libraries required are listed in requirements.txt.  
+For an easy installation of all dependencies, run from the main directory:
+
+    pip install -r requirements.txt
+    
+It is recommended to first create a new virtual environment using *virtualenv* and to install all dependencies in there. 
+
 ### Prepare database
 
 The first step is to create a new database that will be used by dagger.
