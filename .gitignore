@@ -2,6 +2,10 @@
 *.sublime-project
 *.sublime-workspace
 
+# Taxi test script data files
+taxi_test.csv
+taxi_train.csv
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
