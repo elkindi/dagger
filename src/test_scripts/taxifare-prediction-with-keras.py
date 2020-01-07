@@ -21,7 +21,7 @@ pd.set_option('display.width', 900)
 
 # start working on model
 df = (pd.read_csv('./test_scripts/taxi_train.csv',
-                  nrows=100,
+                  nrows=1000,
                   encoding='utf8').drop(['key'], axis=1))
 
 df.pickup_datetime = pd.to_datetime(df.pickup_datetime,
@@ -171,11 +171,11 @@ print('generating predictions for test data')
 test = pd.read_csv('./test_scripts/taxi_test.csv', nrows=200)
 test.pickup_datetime = pd.to_datetime(test.pickup_datetime,
                                       format='%Y-%m-%d %H:%M:%S %Z')
-# test.pickup_latitude = test.pickup_latitude.astype('float32')
-# test.pickup_longitude = test.pickup_longitude.astype('float32')
-# test.dropoff_latitude = test.dropoff_latitude.astype('float32')
-# test.dropoff_longitude = test.dropoff_longitude.astype('float32')
-# test.passenger_count = test.passenger_count.astype('uint8')
+test.pickup_latitude = test.pickup_latitude.astype('float32')
+test.pickup_longitude = test.pickup_longitude.astype('float32')
+test.dropoff_latitude = test.dropoff_latitude.astype('float32')
+test.dropoff_longitude = test.dropoff_longitude.astype('float32')
+test.passenger_count = test.passenger_count.astype('uint8')
 print(test.shape)
 
 print('adding features to test data')
