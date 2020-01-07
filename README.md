@@ -10,7 +10,7 @@ Python data debugger
  - python 3.6
  - postgresql
  
-### Requirements
+**Python dependencies**:
 
 All python libraries required are listed in requirements.txt.  
 For an easy installation of all dependencies, run from the main directory:
