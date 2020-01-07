@@ -13,3 +13,4 @@ astpretty
 
 ## Packages used in test script
 tensorflow
+sklearn
