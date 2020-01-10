@@ -80,6 +80,7 @@ class DbInterface(object):
         self.delta_logging = delta_logging
         self.cur = None
         self.conn = None
+        self.block_id = None
         self.split_id = None
 
     # Disconnect without committing if the instance is deleted
@@ -122,6 +123,20 @@ class DbInterface(object):
         self.conn.set_isolation_level(old_isolation_level)
 
     # Set the current split id
+    def set_block_id(self, block_id: int):
+        if isinstance(block_id, int):
+            if block_id >= 0:
+                self.block_id = block_id
+            else:
+                raise ValueError("block_id must be positive")
+        else:
+            raise TypeError("block_id must be an integer")
+
+    # Set the current split id to None
+    def reset_block_id(self):
+        self.block_id = None
+
+    # Set the current split id
     def set_split_id(self, split_id: int):
         if isinstance(split_id, int):
             if split_id >= 0:
@@ -155,9 +170,9 @@ class DbInterface(object):
 
     def save_scalar(self, obj: DbObject):
         sql = """
-            INSERT INTO {}_scalar(s_id, t, lineno, name, value) 
-            VALUES (%s,%s,%s,%s,%s)""".format(obj.type.__name__)
-        args = (self.split_id, obj.time, obj.lineno, obj.name, obj.value)
+            INSERT INTO {}_scalar(b_id, s_id, t, lineno, name, value) 
+            VALUES (%s,%s,%s,%s,%s,%s)""".format(obj.type.__name__)
+        args = (self.block_id, self.split_id, obj.time, obj.lineno, obj.name, obj.value)
         self.cur.execute(sql, args)
 
     def save_array_like(self, obj: DbObject):
@@ -166,22 +181,22 @@ class DbInterface(object):
         except Exception as e:
             raise e
         else:
-            sql, args = None, (self.split_id, obj.time, obj.lineno,
+            sql, args = None, (self.block_id, self.split_id, obj.time, obj.lineno,
                                type(obj.value).__name__, obj.name)
             arr = list(obj.value)
             if arr_type is ArrayType.EMPTY:
                 sql = """
-                    INSERT INTO empty_array(s_id, t, lineno, arr_type, name) 
-                    VALUES (%s,%s,%s,%s,%s)"""
+                    INSERT INTO empty_array(b_id, s_id, t, lineno, arr_type, name) 
+                    VALUES (%s,%s,%s,%s,%s,%s)"""
             elif arr_type is ArrayType.COMPOUND:
                 sql = """
-                    INSERT INTO compound_scalar_array(s_id, t, lineno, arr_type, name, types, value) 
-                    VALUES (%s,%s,%s,%s,%s,%s,%s)"""
+                    INSERT INTO compound_scalar_array(b_id, s_id, t, lineno, arr_type, name, types, value) 
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s)"""
                 args += (get_element_types(arr), list(map(str, arr)))
             else:
                 sql = """
-                    INSERT INTO {}_scalar_array(s_id, t, lineno, arr_type, name, value) 
-                    VALUES (%s,%s,%s,%s,%s,%s)""".format(
+                    INSERT INTO {}_scalar_array(b_id, s_id, t, lineno, arr_type, name, value) 
+                    VALUES (%s,%s,%s,%s,%s,%s,%s)""".format(
                     type(arr[0]).__name__)
                 args += (arr, )
             self.cur.execute(sql, args)
@@ -200,10 +215,10 @@ class DbInterface(object):
 
     def save_pandas_default(self, obj: DbObject):
         sql = """
-            INSERT INTO {}_object(s_id, t, lineno, name) 
-            VALUES (%s,%s,%s,%s) RETURNING value""".format(
+            INSERT INTO {}_object(b_id, s_id, t, lineno, name) 
+            VALUES (%s,%s,%s,%s,%s) RETURNING value""".format(
             obj.type.__name__.lower())
-        args = (self.split_id, obj.time, obj.lineno, obj.name)
+        args = (self.block_id, self.split_id, obj.time, obj.lineno, obj.name)
         self.cur.execute(sql, args)
         table_id = self.cur.fetchone()[0]
         table_name = "{}_{}".format(obj.type.__name__.lower(), table_id)
@@ -307,18 +322,18 @@ class DbInterface(object):
         rids.extend(new_rids)
 
         insert_versioning_sql = """
-            INSERT INTO dataframe_delta_object(s_id, t, lineno, name, rlist, clist) 
-            VALUES (%s,%s,%s,%s,%s,%s)"""
-        args = (self.split_id, obj.time, obj.lineno, obj.name, rids, df_cols)
+            INSERT INTO dataframe_delta_object(b_id, s_id, t, lineno, name, rlist, clist) 
+            VALUES (%s,%s,%s,%s,%s,%s,%s)"""
+        args = (self.block_id, self.split_id, obj.time, obj.lineno, obj.name, rids, df_cols)
         self.cur.execute(insert_versioning_sql, args)
 
     def save_numpy(self, obj: DbObject):
         dim = len(obj.value.shape)
         if dim == 0 or dim == 1 or dim == 2:
             sql = """
-                INSERT INTO np_{}d_object(s_id, t, lineno, name, dtype) 
-                VALUES (%s,%s,%s,%s,%s) RETURNING value""".format(dim)
-            args = (self.split_id, obj.time, obj.lineno, obj.name,
+                INSERT INTO np_{}d_object(b_id, s_id, t, lineno, name, dtype) 
+                VALUES (%s,%s,%s,%s,%s,%s) RETURNING value""".format(dim)
+            args = (self.block_id, self.split_id, obj.time, obj.lineno, obj.name,
                     str(obj.value.dtype))
             self.cur.execute(sql, args)
             table_id = self.cur.fetchone()[0]

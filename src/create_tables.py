@@ -13,6 +13,23 @@ Not sure which idea is better
 """
 
 
+# Possibly save every variable in this table
+# and only have ref_id and value in other tables
+def prepare_main_table():
+    sql = """
+            CREATE TABLE IF NOT EXISTS variable (
+                id serial PRIMARY KEY,
+                b_id integer, # Block id
+                s_id integer, # Split id
+                t timestamptz NOT NULL DEFAULT current_timestamp,
+                lineno integer NOT NULL,
+                name text NOT NULL,
+                type text NOT NULL, # Type of the object, specifies in which table the value is stored
+                val_id # Id of the value in the corresponding 'type' table
+            );
+        """
+
+
 # for scalar values ex: 4, 'a', True, 12.90
 # and for date, time and datetime types
 # (they are handled as scalar values)
@@ -20,6 +37,7 @@ def prepare_scalar_tables():
     sql = """
             CREATE TABLE IF NOT EXISTS int_scalar (
                 id serial PRIMARY KEY,
+                b_id integer,
                 s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
@@ -28,6 +46,7 @@ def prepare_scalar_tables():
             );
             CREATE TABLE IF NOT EXISTS float_scalar (
                 id serial PRIMARY KEY,
+                b_id integer,
                 s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
@@ -36,6 +55,7 @@ def prepare_scalar_tables():
             );
             CREATE TABLE IF NOT EXISTS str_scalar (
                 id serial PRIMARY KEY,
+                b_id integer,
                 s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
@@ -44,6 +64,7 @@ def prepare_scalar_tables():
             );
             CREATE TABLE IF NOT EXISTS bool_scalar (
                 id serial PRIMARY KEY,
+                b_id integer,
                 s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
@@ -52,6 +73,7 @@ def prepare_scalar_tables():
             );
             CREATE TABLE IF NOT EXISTS date_scalar (
                 id serial PRIMARY KEY,
+                b_id integer,
                 s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
@@ -60,6 +82,7 @@ def prepare_scalar_tables():
             );
             CREATE TABLE IF NOT EXISTS time_scalar (
                 id serial PRIMARY KEY,
+                b_id integer,
                 s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
@@ -68,6 +91,7 @@ def prepare_scalar_tables():
             );
             CREATE TABLE IF NOT EXISTS datetime_scalar (
                 id serial PRIMARY KEY,
+                b_id integer,
                 s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
@@ -84,6 +108,7 @@ def prepare_scalar_array_tables():
     sql = """
             CREATE TABLE IF NOT EXISTS empty_array (
                 id serial PRIMARY KEY,
+                b_id integer,
                 s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
@@ -92,6 +117,7 @@ def prepare_scalar_array_tables():
             );
             CREATE TABLE IF NOT EXISTS int_scalar_array (
                 id serial PRIMARY KEY,
+                b_id integer,
                 s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
@@ -101,6 +127,7 @@ def prepare_scalar_array_tables():
             );
             CREATE TABLE IF NOT EXISTS float_scalar_array (
                 id serial PRIMARY KEY,
+                b_id integer,
                 s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
@@ -110,6 +137,7 @@ def prepare_scalar_array_tables():
             );
             CREATE TABLE IF NOT EXISTS str_scalar_array (
                 id serial PRIMARY KEY,
+                b_id integer,
                 s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
@@ -119,6 +147,7 @@ def prepare_scalar_array_tables():
             );
             CREATE TABLE IF NOT EXISTS bool_scalar_array (
                 id serial PRIMARY KEY,
+                b_id integer,
                 s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
@@ -128,6 +157,7 @@ def prepare_scalar_array_tables():
             );
             CREATE TABLE IF NOT EXISTS date_scalar_array (
                 id serial PRIMARY KEY,
+                b_id integer,
                 s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
@@ -137,6 +167,7 @@ def prepare_scalar_array_tables():
             );
             CREATE TABLE IF NOT EXISTS time_scalar_array (
                 id serial PRIMARY KEY,
+                b_id integer,
                 s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
@@ -146,6 +177,7 @@ def prepare_scalar_array_tables():
             );
             CREATE TABLE IF NOT EXISTS datetime_scalar_array (
                 id serial PRIMARY KEY,
+                b_id integer,
                 s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
@@ -155,6 +187,7 @@ def prepare_scalar_array_tables():
             );
             CREATE TABLE IF NOT EXISTS compound_scalar_array (
                 id serial PRIMARY KEY,
+                b_id integer,
                 s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
@@ -172,6 +205,7 @@ def prepare_pandas_tables():
     sql = """
             CREATE TABLE IF NOT EXISTS dataframe_object (
                 id serial PRIMARY KEY,
+                b_id integer,
                 s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
@@ -180,6 +214,7 @@ def prepare_pandas_tables():
             );
             CREATE TABLE IF NOT EXISTS series_object (
                 id serial PRIMARY KEY,
+                b_id integer,
                 s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
@@ -188,6 +223,7 @@ def prepare_pandas_tables():
             );
             CREATE TABLE IF NOT EXISTS dataframe_delta_object (
                 id serial PRIMARY KEY,
+                b_id integer,
                 s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
@@ -212,6 +248,7 @@ def prepare_numpy_tables():
     sql = """
             CREATE TABLE IF NOT EXISTS np_0d_object (
                 id serial PRIMARY KEY,
+                b_id integer,
                 s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
@@ -221,6 +258,7 @@ def prepare_numpy_tables():
             );
             CREATE TABLE IF NOT EXISTS np_1d_object (
                 id serial PRIMARY KEY,
+                b_id integer,
                 s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,
@@ -230,6 +268,7 @@ def prepare_numpy_tables():
             );
             CREATE TABLE IF NOT EXISTS np_2d_object (
                 id serial PRIMARY KEY,
+                b_id integer,
                 s_id integer,
                 t timestamptz NOT NULL DEFAULT current_timestamp,
                 lineno integer NOT NULL,

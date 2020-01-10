@@ -73,10 +73,13 @@ class Executor(object):
                 for i, code in enumerate(self.code_list):
                     if self.block_flag_list[i] == 1:
                         lb_count += 1
+                        db.set_block_id(lb_count)
                         if lb_count == self.split_params['block']:
                             df_partitioner = DfPartitioner(self.split_params)
                             globs_list = df_partitioner.partition_from_globs(
                                 *globs_list)
+                    else:
+                        db.reset_block_id()
                     for j, globs in enumerate(globs_list):
                         if len(globs_list) > 1:
                             db.set_split_id(j)
@@ -86,4 +89,9 @@ class Executor(object):
             else:
                 globs = {'log_variable': log_func, 'log': self.log, 'db': db}
                 for i, code in enumerate(self.code_list):
+                    if self.block_flag_list[i] == 1:
+                        lb_count += 1
+                        db.set_block_id(lb_count)
+                    else:
+                        db.reset_block_id()
                     exec(code, globs)
